@@ -15,6 +15,8 @@
   --explain-soft: #e6ebfc;
   --practice: #0b7350;
   --practice-soft: #dff3ea;
+  --lesson: #7436b0;
+  --lesson-soft: #efe5fa;
   --on-accent: #ffffff;
   --warn: #a8321f;
   --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
@@ -24,13 +26,13 @@
   :root:not([data-theme="light"]) {
     --bg: #10141f; --grid: #1a2030; --surface: #19202f; --ink: #e9edf8; --muted: #9ca7c6;
     --line: #2e3854; --explain: #8fa6ff; --explain-soft: #1f294a; --practice: #5ed1a3;
-    --practice-soft: #17342b; --on-accent: #0e1220; --warn: #ff9d8a; color-scheme: dark;
+    --practice-soft: #17342b; --lesson: #c9a2ff; --lesson-soft: #2a2042; --on-accent: #0e1220; --warn: #ff9d8a; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #10141f; --grid: #1a2030; --surface: #19202f; --ink: #e9edf8; --muted: #9ca7c6;
   --line: #2e3854; --explain: #8fa6ff; --explain-soft: #1f294a; --practice: #5ed1a3;
-  --practice-soft: #17342b; --on-accent: #0e1220; --warn: #ff9d8a; color-scheme: dark;
+  --practice-soft: #17342b; --lesson: #c9a2ff; --lesson-soft: #2a2042; --on-accent: #0e1220; --warn: #ff9d8a; color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -93,7 +95,14 @@ select:focus-visible { outline: 3px solid var(--explain); outline-offset: 2px; }
 .photo button { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1; padding: 2px 6px; border-radius: 999px; }
 
 /* Les deux bulles */
-.bulles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.bulles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 760px) { .bulles { grid-template-columns: 1fr; } }
+.bulle.cours { background: var(--lesson); }
+.panneau.cours > .tete { background: var(--lesson-soft); }
+.panneau.cours .rendu h3 { color: var(--lesson); }
+.chapitre label.titre { font-size: 1.1rem; }
+details.perso { background: transparent; margin: 0; }
+.perso-corps { padding: 4px 14px 14px; display: flex; flex-direction: column; gap: 12px; }
 .bulle {
   font: inherit; text-align: left; cursor: pointer; color: var(--on-accent);
   border: 0; padding: 18px 20px 20px; border-radius: 28px 28px 28px 6px;
@@ -147,16 +156,19 @@ details > .rendu { padding: 0 14px 10px; }
 <div class="page">
   <header>
     <h1>Mon cours de maths</h1>
-    <p>Colle ton cours de première, puis choisis une bulle : on te l'explique simplement, ou on te prépare des exercices dessus.</p>
+    <p>Choisis un chapitre du programme de première : le cours s'écrit tout seul, puis on te l'explique et on te donne des exercices.</p>
   </header>
 
   <section class="feuille">
     <div class="chapitre">
-      <label for="chapitre">Chapitre du programme de première (spécialité maths)</label>
-      <select id="chapitre"><option value="">Je ne sais pas, trouve-le d'après mon cours</option></select>
-      <p class="aide">Si tu choisis un chapitre, les bulles marchent même sans coller de cours.</p>
+      <label class="titre" for="chapitre">Choisis ton chapitre</label>
+      <select id="chapitre"><option value="">Autre : d'après mon propre cours</option></select>
+      <p class="aide">Programme officiel de spécialité maths de première, rentrée 2026.</p>
     </div>
-    <label class="titre" for="cours">Ton cours</label>
+    <details class="perso" id="perso">
+    <summary>Ajouter le cours de mon professeur (facultatif)</summary>
+    <div class="perso-corps">
+    <label class="aide" for="cours">Si tu le colles ici, tout suivra ses notations et sa façon de présenter.</label>
     <textarea id="cours" spellcheck="false" placeholder="Colle ou recopie ici la leçon : définitions, propriétés, formules…"></textarea>
     <p class="aide" id="note-exemple" hidden>Ceci est un exemple pour essayer. Remplace-le par ton vrai cours.</p>
     <div class="ligne">
@@ -167,20 +179,39 @@ details > .rendu { padding: 0 14px 10px; }
       <button type="button" class="discret" id="vider">Effacer le cours</button>
       <div class="photos" id="photos"></div>
     </div>
+    </div>
+    </details>
   </section>
 
   <div class="bulles">
+    <button type="button" class="bulle cours" id="btn-cours">
+      <strong>Écris-moi le cours</strong>
+      <span>Le cours complet du chapitre : définitions, formules, méthodes, exemples.</span>
+    </button>
     <button type="button" class="bulle expl" id="btn-expl">
-      <strong>Explique-moi mon cours</strong>
+      <strong>Explique-moi simplement</strong>
       <span>Les idées pas à pas, un exemple détaillé, les pièges à éviter.</span>
     </button>
     <button type="button" class="bulle exo droite" id="btn-exo">
       <strong>Donne-moi des exercices</strong>
-      <span>Trois exercices sur ce cours, avec indice et correction.</span>
+      <span>Trois exercices sur ce chapitre, avec indice et correction.</span>
     </button>
   </div>
 
   <p class="message" id="message" role="status" aria-live="polite" hidden></p>
+
+  <section class="panneau cours" id="panneau-cours" hidden>
+    <div class="tete">
+      <h2>Le cours</h2>
+      <div class="ligne">
+        <button type="button" class="discret stop" hidden>Arrêter</button>
+      </div>
+    </div>
+    <div class="corps">
+      <p class="etat" hidden><span class="point"></span><span class="txt"></span></p>
+      <div class="rendu" id="sortie-cours"></div>
+    </div>
+  </section>
 
   <section class="panneau expl" id="panneau-expl" hidden>
     <div class="tete">
@@ -226,20 +257,6 @@ window.MathJax = {
   const $ = (id) => document.getElementById(id);
   const ta = $('cours'), msg = $('message');
   const CLE = 'cours-maths-texte';
-  const EXEMPLE = [
-    'Chapitre : Fonctions polynômes du second degré',
-    '',
-    'Définition : une fonction polynôme du second degré est une fonction f définie sur R par f(x) = ax² + bx + c, avec a différent de 0.',
-    '',
-    'Discriminant : Δ = b² - 4ac.',
-    '- Si Δ > 0, l\'équation ax² + bx + c = 0 a deux solutions : x1 = (-b - √Δ) / (2a) et x2 = (-b + √Δ) / (2a).',
-    '- Si Δ = 0, elle a une seule solution : x0 = -b / (2a).',
-    '- Si Δ < 0, elle n\'a pas de solution réelle.',
-    '',
-    'Forme factorisée (si Δ > 0) : f(x) = a(x - x1)(x - x2).',
-    '',
-    'Signe du trinôme : f(x) est du signe de a à l\'extérieur des racines, et du signe contraire entre les racines.'
-  ].join('\n');
 
   /* ---------- Programme officiel : spécialité maths, première générale, rentrée 2026 ----------
      Résumé du programme publié au BO n° 14 du 2 avril 2026 (arrêté du 26 février 2026). */
@@ -269,15 +286,17 @@ window.MathJax = {
   {
     const sel = $('chapitre');
     PROGRAMME.forEach((p) => sel.add(new Option(p.titre, p.id)));
-    try { sel.value = localStorage.getItem('cours-maths-chapitre') || ''; } catch (e) {}
+    let choix = null;
+    try { choix = localStorage.getItem('cours-maths-chapitre'); } catch (e) {}
+    sel.value = choix === null ? 'suites' : choix;
     sel.addEventListener('change', () => { try { localStorage.setItem('cours-maths-chapitre', sel.value); } catch (e) {} });
   }
 
   /* ---------- Cours : mémorisé sur cet appareil ---------- */
   let sauvegarde = null;
   try { sauvegarde = localStorage.getItem(CLE); } catch (e) {}
-  if (sauvegarde === null) { ta.value = EXEMPLE; $('note-exemple').hidden = false; }
-  else ta.value = sauvegarde;
+  ta.value = sauvegarde || '';
+  $('perso').open = !!ta.value.trim();
   let minuteur;
   ta.addEventListener('input', () => {
     $('note-exemple').hidden = true;
@@ -440,6 +459,15 @@ window.MathJax = {
     if (!cours && !photos.length) c += 'Elle n\'a pas fourni son cours : appuie-toi sur le programme pour ce chapitre, avec les définitions et notations habituelles du lycée.\n\n';
     return c;
   }
+  function consigneCours(cours) {
+    return contexte(cours) +
+      'Rédige pour elle le cours complet de ce chapitre, comme une fiche de cours claire et bien rangée de première.\n' +
+      '- Couvre toutes les notions du chapitre listées au programme, dans un ordre logique, sans en ajouter d\'autres.\n' +
+      '- Un titre "## " par notion. Sous chaque titre : la définition, puis la propriété ou la formule (seule sur sa ligne entre doubles dollars), puis la méthode en étapes numérotées quand il y en a une, puis un court exemple résolu.\n' +
+      '- Commence par deux phrases qui disent à quoi sert ce chapitre, et termine par "## L\'essentiel à retenir" (5 points au maximum).\n' +
+      (cours || photos.length ? '- Elle a fourni le cours de son professeur : suis son ordre et ses notations, et complète ce qui manque.\n' : '') +
+      '\n' + FORMAT;
+  }
   function consigneExplication(cours, autrement) {
     return contexte(cours) +
       'Explique-lui ce ' + (cours || photos.length ? 'cours' : 'chapitre') + ' pour qu\'elle le comprenne vraiment, comme si tu étais assis à côté d\'elle. Utilise exactement ces parties :\n' +
@@ -534,8 +562,9 @@ window.MathJax = {
     msg.classList.toggle('alerte', !!alerte);
   }
 
-  let occupe = false, ctl = null, coursExpl = null, coursExo = null;
-  const boutons = ['btn-expl', 'btn-exo', 'expl-autre', 'exo-facile', 'exo-autre', 'exo-dur'].map($);
+  let occupe = false, ctl = null;
+  const fait = {};
+  const boutons = ['btn-cours', 'btn-expl', 'btn-exo', 'expl-autre', 'exo-facile', 'exo-autre', 'exo-dur'].map($);
   document.querySelectorAll('.stop').forEach((b) => { b.onclick = () => ctl && ctl.abort(); });
 
   async function lancer(genre, option) {
@@ -543,10 +572,10 @@ window.MathJax = {
     const cours = ta.value.trim();
     if (!cours && !photos.length && !$('chapitre').value) { dire('Colle d\'abord ton cours, ou choisis un chapitre dans la liste.', true); ta.focus(); return; }
     const cle = $('chapitre').value + '|' + cours;
-    const panneau = $(genre === 'expl' ? 'panneau-expl' : 'panneau-exo');
+    const panneau = $('panneau-' + genre);
     const etat = panneau.querySelector('.etat'), etatTxt = etat.querySelector('.txt');
     const stop = panneau.querySelector('.stop');
-    const sortie = $(genre === 'expl' ? 'sortie-expl' : 'sortie-exo');
+    const sortie = $('sortie-' + genre);
 
     occupe = true; boutons.forEach((b) => { b.disabled = true; });
     dire('');
@@ -558,10 +587,10 @@ window.MathJax = {
       return;
     }
 
-    $('panneau-expl').hidden = genre !== 'expl';
+    $('panneau-cours').hidden = genre !== 'cours'; $('panneau-expl').hidden = genre !== 'expl';
     $('panneau-exo').hidden = genre !== 'exo';
     sortie.textContent = '';
-    etatTxt.textContent = genre === 'expl' ? 'Je lis ton cours…' : 'Je prépare tes exercices…';
+    etatTxt.textContent = genre === 'exo' ? 'Je prépare tes exercices…' : genre === 'cours' ? 'Je prépare ton cours…' : 'Je prépare l\'explication…';
     etat.hidden = false; stop.hidden = false;
     panneau.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
@@ -569,11 +598,11 @@ window.MathJax = {
     const options = { signal: ctl.signal };
     if (photos.length) options.images = photos.slice();
     let consigne, dernierRendu = 0, enAttente = null, courant = '';
-    if (genre === 'expl') {
-      consigne = consigneExplication(cours, option === 'autrement');
+    if (genre !== 'exo') {
+      consigne = genre === 'cours' ? consigneCours(cours) : consigneExplication(cours, option === 'autrement');
       if (option === 'autrement') options.cache = false;
       options.onText = ({ text }) => {
-        courant = text; etatTxt.textContent = 'J\'écris l\'explication…';
+        courant = text; etatTxt.textContent = genre === 'cours' ? 'J\'écris le cours…' : 'J\'écris l\'explication…';
         const maintenant = Date.now();
         if (maintenant - dernierRendu > 600) { dernierRendu = maintenant; afficher(sortie, text); }
         else if (!enAttente) enAttente = setTimeout(() => { enAttente = null; dernierRendu = Date.now(); afficher(sortie, courant); }, 600);
@@ -590,13 +619,13 @@ window.MathJax = {
     try {
       const { text, truncated } = await sample(consigne, options);
       clearTimeout(enAttente);
-      if (genre === 'expl') { afficher(sortie, text); coursExpl = cle; }
-      else { afficherExercices(text); coursExo = cle; }
+      if (genre !== 'exo') afficher(sortie, text); else afficherExercices(text);
+      fait[genre] = cle;
       if (truncated) dire('La réponse a été coupée. Colle un cours plus court pour une réponse complète.', true);
     } catch (e) {
       clearTimeout(enAttente);
       const code = e && e.code;
-      if (genre === 'expl' && e && e.text && code !== 'refused') afficher(sortie, e.text);
+      if (genre !== 'exo' && e && e.text && code !== 'refused') afficher(sortie, e.text);
       if (code !== 'cancelled') dire(ERREURS[code] || 'Un problème est survenu pendant la réponse. Clique à nouveau sur la bulle pour réessayer.', true);
       if (!sortie.textContent.trim()) panneau.hidden = true;
     } finally { finir(); }
@@ -604,16 +633,17 @@ window.MathJax = {
 
   function montrerOuLancer(genre) {
     const cours = $('chapitre').value + '|' + ta.value.trim();
-    const dejaLa = genre === 'expl' ? coursExpl : coursExo;
-    const sortie = $(genre === 'expl' ? 'sortie-expl' : 'sortie-exo');
+    const dejaLa = fait[genre];
+    const sortie = $('sortie-' + genre);
     if (!occupe && dejaLa === cours && !photos.length && sortie.textContent.trim()) {
-      $('panneau-expl').hidden = genre !== 'expl';
+      $('panneau-cours').hidden = genre !== 'cours'; $('panneau-expl').hidden = genre !== 'expl';
       $('panneau-exo').hidden = genre !== 'exo';
-      $(genre === 'expl' ? 'panneau-expl' : 'panneau-exo').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      $('panneau-' + genre).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       return;
     }
     lancer(genre);
   }
+  $('btn-cours').onclick = () => montrerOuLancer('cours');
   $('btn-expl').onclick = () => montrerOuLancer('expl');
   $('btn-exo').onclick = () => montrerOuLancer('exo');
   $('expl-autre').onclick = () => lancer('expl', 'autrement');
