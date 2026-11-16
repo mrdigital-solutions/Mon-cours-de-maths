@@ -1,7 +1,7 @@
 /* Service Worker de l'application « Mes cours de 1re » :
    - Pré-cache les fichiers du site pour fonctionner hors-ligne sur téléphone.
    - Stratégie Network-first sur nos fichiers afin de récupérer immédiatement les mises à jour. */
-const CACHE_NAME = 'cours-1re-v2';
+const CACHE_NAME = 'cours-1re-v3';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -42,7 +42,7 @@ self.addEventListener('fetch', (event) => {
 
   if (url.origin === self.location.origin) {
     event.respondWith(
-      fetch(req)
+      fetch(req, { cache: 'no-cache' })
         .then((res) => {
           if (res && res.status === 200) {
             const copy = res.clone();
