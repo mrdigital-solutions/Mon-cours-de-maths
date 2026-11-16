@@ -48,6 +48,10 @@
     <div class="chapitres" id="chapitres"></div>
     <div class="moncours">
       <h2>Ou dépose ton cours</h2>
+      <div class="choix-mode-ia" id="choix-mode-ia" role="group" aria-label="Choisir le mode d'utilisation" hidden>
+        <button type="button" class="mode-ia-btn" id="btn-mode-gratuit" aria-pressed="false">Mode gratuit</button>
+        <button type="button" class="mode-ia-btn" id="btn-mode-ia" aria-pressed="true">✨ Mode IA (Claude)</button>
+      </div>
       <span class="discret fichier">
         📄 Ajouter des feuilles (PDF, photos ou texte)
         <input type="file" id="depot" multiple accept=".pdf,.txt,application/pdf,text/plain,image/*" aria-label="Déposer les feuilles de mon cours">
@@ -139,7 +143,10 @@
         </div>
         <div id="zone-cle-active" class="cle-active-bandeau" hidden>
           <span class="cle-active-texte" id="cle-active-label">✅ Clé API activée</span>
-          <button type="button" class="discret petit" id="cle-retirer">Supprimer la clé</button>
+          <div class="ligne">
+            <button type="button" class="discret petit" id="cle-basculer">Passer en mode gratuit</button>
+            <button type="button" class="discret petit" id="cle-retirer">Supprimer la clé</button>
+          </div>
         </div>
         <label for="modele">Modèle</label>
         <select id="modele">
@@ -822,13 +829,15 @@ window.MathJax = {
   /* ---------- Mode IA & sauvegarde persistante de la clé (localStorage + IndexedDB + lien mobile) ---------- */
   const SDK = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.3.0/+esm';
   const TARIFS = { 'claude-opus-5-5': [4, 20], 'claude-sonnet-5-5': [2, 10], 'claude-haiku-5-5': [0.1, 0.5] }; /* $ par million de tokens : entrée, sortie */
-  const cle = () => lire('maths-cle', '');
+  const cleStockee = () => lire('maths-cle', '');
+  const iaActive = () => Boolean(cleStockee()) && lire('maths-ia-active', '1') !== '0';
+  const cle = () => (iaActive() ? cleStockee() : '');
   const modele = () => { const m = lire('maths-modele', 'claude-sonnet-5-5'); return TARIFS[m] ? m : 'claude-sonnet-5-5'; };
   const dollars = (x) => (x < 0.01 ? 'moins de 0,01' : x.toFixed(2).replace('.', ',')) + ' $';
 
   async function sauverParamsIA() {
     await ecrireBrut(CLE_PARAMS, {
-      cle: cle(),
+      cle: cleStockee(),
       modele: modele(),
       depense: Number(lire('maths-depense', '0')) || 0
     });
@@ -836,11 +845,11 @@ window.MathJax = {
   async function chargerParamsIA() {
     const saved = await lireBrut(CLE_PARAMS);
     if (saved && typeof saved === 'object') {
-      if (!cle() && saved.cle) ecrire('maths-cle', saved.cle);
+      if (!cleStockee() && saved.cle) ecrire('maths-cle', saved.cle);
       if (!lire('maths-modele', '') && saved.modele && TARIFS[saved.modele]) ecrire('maths-modele', saved.modele);
       if (!lire('maths-depense', '') && saved.depense) ecrire('maths-depense', String(saved.depense));
     }
-    if (cle() || lire('maths-depense', '')) await sauverParamsIA();
+    if (cleStockee() || lire('maths-depense', '')) await sauverParamsIA();
   }
   function lireCleDepuisURL() {
     let val = '';
@@ -855,6 +864,7 @@ window.MathJax = {
       }
       if (val) {
         ecrire('maths-cle', val);
+        ecrire('maths-ia-active', '1');
         if (history.replaceState) history.replaceState(null, '', location.pathname);
         return true;
       }
@@ -863,11 +873,17 @@ window.MathJax = {
   }
 
   function majIA() {
-    const c = cle();
+    const c = cleStockee();
     const aUneCle = Boolean(c);
+    const estActif = iaActive();
+    const fin = c.length > 8 ? ' (…' + c.slice(-4) + ')' : '';
     $('zone-saisie-cle').hidden = aUneCle;
     $('zone-cle-active').hidden = !aUneCle;
-    $('cle-active-label').textContent = '✅ Clé API activée' + (c.length > 8 ? ' (…' + c.slice(-4) + ')' : '');
+    $('cle-active-label').textContent = (estActif ? '✅ Clé API activée' : '⏸️ Clé enregistrée · mode gratuit') + fin;
+    $('cle-basculer').textContent = estActif ? 'Passer en mode gratuit' : '✨ Réactiver le Mode IA';
+    $('choix-mode-ia').hidden = !aUneCle;
+    $('btn-mode-gratuit').setAttribute('aria-pressed', String(!estActif));
+    $('btn-mode-ia').setAttribute('aria-pressed', String(estActif));
     $('cle-etat').textContent = aUneCle ? '' : 'Aucune clé enregistrée.';
     $('lien-tel').hidden = !aUneCle;
     $('partager-tel').hidden = !(aUneCle && typeof navigator.share === 'function');
@@ -875,10 +891,26 @@ window.MathJax = {
     const total = Number(lire('maths-depense', '0'));
     $('depense').textContent = total ? 'Dépense estimée depuis le début sur cet appareil : ' + dollars(total) : '';
   }
+  function definirModeIA(actif) {
+    if (!cleStockee()) return;
+    ecrire('maths-ia-active', actif ? '1' : '0');
+    majIA();
+    majFichier();
+    dire(actif ? 'Mode IA (Claude) activé. Choisis une bulle ci-dessous puis lance la génération souhaitée.' : 'Mode gratuit activé (ta clé reste enregistrée pour plus tard).');
+    if (chapitre === 'mon-cours') afficher();
+  }
+  $('btn-mode-gratuit').onclick = () => definirModeIA(false);
+  $('btn-mode-ia').onclick = () => definirModeIA(true);
+  $('cle-basculer').onclick = () => {
+    const actif = !iaActive();
+    definirModeIA(actif);
+    direReglages(actif ? 'Mode IA réactivé.' : 'Mode gratuit activé (clé conservée).');
+  };
   $('cle-garder').onclick = async () => {
     const v = $('cle').value.trim();
     if (!v) return;
     ecrire('maths-cle', v);
+    ecrire('maths-ia-active', '1');
     $('cle').value = '';
     await sauverParamsIA();
     majIA();
@@ -888,6 +920,7 @@ window.MathJax = {
   };
   $('cle-retirer').onclick = async () => {
     supprimer('maths-cle');
+    supprimer('maths-ia-active');
     await sauverParamsIA();
     majIA();
     majFichier();
@@ -899,9 +932,9 @@ window.MathJax = {
     await sauverParamsIA();
   };
 
-  const construireLienCle = () => location.origin + location.pathname + '#cle=' + encodeURIComponent(cle());
+  const construireLienCle = () => location.origin + location.pathname + '#cle=' + encodeURIComponent(cleStockee());
   $('lien-tel').onclick = async () => {
-    if (!cle()) return;
+    if (!cleStockee()) return;
     const url = construireLienCle();
     try {
       await navigator.clipboard.writeText(url);
@@ -911,7 +944,7 @@ window.MathJax = {
     }
   };
   $('partager-tel').onclick = async () => {
-    if (!cle() || !navigator.share) return;
+    if (!cleStockee() || !navigator.share) return;
     try {
       await navigator.share({
         title: 'Mes cours de 1re',
@@ -1313,9 +1346,16 @@ window.MathJax = {
     if (!cle()) {
       zoneSortie.textContent = '';
       const p = document.createElement('p'); p.className = 'aide'; p.style.margin = '0';
-      p.textContent = 'Enregistre une clé Anthropic dans ⚙️ Paramètres pour faire vérifier ton brouillon par Claude.';
       const b = document.createElement('button'); b.type = 'button'; b.className = 'discret petit';
-      b.textContent = '⚙️ Ouvrir les paramètres'; b.onclick = ouvrirParametres;
+      if (cleStockee()) {
+        p.textContent = 'Le Mode IA est actuellement en pause (mode gratuit actif).';
+        b.textContent = '✨ Réactiver le Mode IA et vérifier';
+        b.onclick = () => { definirModeIA(true); verifierBrouillon(exo, texteEleve, fichierPhoto, zoneSortie, btn); };
+      } else {
+        p.textContent = 'Enregistre une clé Anthropic dans ⚙️ Paramètres pour faire vérifier ton brouillon par Claude.';
+        b.textContent = '⚙️ Ouvrir les paramètres';
+        b.onclick = ouvrirParametres;
+      }
       zoneSortie.append(p, b);
       return;
     }
@@ -1553,7 +1593,7 @@ window.MathJax = {
       return;
     }
 
-    if (rep) {
+    if (rep && (iaActive() || !feuilles.length)) {
       afficherReponseIA(monGenre, rep.texte, cacheValide.sujet, rep.cout, rep.coupe, histMatch && histMatch.texte === rep.texte ? histMatch.date : null, peutRegen, mat);
       return;
     }
@@ -1581,11 +1621,6 @@ window.MathJax = {
       }
     }
 
-    if (depuisBulle && peutRegen) {
-      lancerIA(monGenre);
-      return;
-    }
-
     documentActuel = null;
     $('btn-pdf').hidden = true;
     $('outils-exo').hidden = true;
@@ -1602,13 +1637,21 @@ window.MathJax = {
       sortie.textContent = '';
       const p = document.createElement('p');
       p.className = 'aide';
-      p.textContent = feuilles.length + (feuilles.length > 1 ? ' feuilles déposées' : ' feuille déposée') + ' (' + nomMat + '). Prêt à générer cette partie à partir de ton cours.';
+      p.textContent = feuilles.length + (feuilles.length > 1 ? ' feuilles déposées' : ' feuille déposée') + ' (' + nomMat + '). Tu peux générer avec Claude ou consulter en mode gratuit.';
+      const ligne = document.createElement('div');
+      ligne.className = 'ligne';
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'plein' + (monGenre === 'cours' ? ' cours' : monGenre === 'exo' ? ' vert' : '');
-      btn.textContent = monGenre === 'cours' ? 'Générer mon cours au propre (IA)' : monGenre === 'simple' ? 'Expliquer mon cours (IA)' : 'Générer 3 exercices sur mon cours (IA)';
+      btn.textContent = monGenre === 'cours' ? '✨ Générer mon cours au propre (IA)' : monGenre === 'simple' ? '✨ Expliquer mon cours (IA)' : '✨ Générer 3 exercices sur mon cours (IA)';
       btn.onclick = () => lancerIA(monGenre);
-      sortie.append(p, btn);
+      const btnGratuit = document.createElement('button');
+      btnGratuit.type = 'button';
+      btnGratuit.className = 'discret';
+      btnGratuit.textContent = 'Voir en mode gratuit (sans IA)';
+      btnGratuit.onclick = () => definirModeIA(false);
+      ligne.append(btn, btnGratuit);
+      sortie.append(p, ligne);
       return;
     }
 
@@ -1641,8 +1684,13 @@ window.MathJax = {
     const btnIa = document.createElement('button');
     btnIa.type = 'button';
     btnIa.className = 'discret petit';
-    btnIa.textContent = '⚙️ Activer l\'IA sur mes feuilles';
-    btnIa.onclick = ouvrirParametres;
+    if (cleStockee()) {
+      btnIa.textContent = '✨ Utiliser l\'IA sur mes feuilles';
+      btnIa.onclick = () => definirModeIA(true);
+    } else {
+      btnIa.textContent = '⚙️ Configurer l\'IA';
+      btnIa.onclick = ouvrirParametres;
+    }
     barre.append(lbl, sel, btnIa);
 
     const contenuGratuit = document.createElement('div');
