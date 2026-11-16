@@ -114,6 +114,11 @@ button:focus-visible, summary:focus-visible { outline: 3px solid var(--explain);
 .modal-corps input:focus-visible, .modal-corps select:focus-visible { outline: 3px solid var(--explain); outline-offset: 2px; }
 .sous-bloc { border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .sous-bloc h3 { font-family: var(--display); font-weight: 700; font-size: 1.02rem; margin: 0; }
+.cle-active-bandeau {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px;
+  background: var(--practice-soft); border: 1px solid var(--practice); border-radius: 10px; padding: 10px 14px;
+}
+.cle-active-texte { font-weight: 700; color: var(--practice); }
 
 .bulles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .bulle {

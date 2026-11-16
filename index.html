@@ -131,21 +131,26 @@
 
       <div class="sous-bloc">
         <h3>Mode IA (clé Anthropic)</h3>
-        <p>Avec une clé Anthropic, l'IA Claude lit vraiment les feuilles déposées dans « Mon cours », remet le cours au propre, l'explique et invente des exercices dessus. Chaque demande est payante, à l'usage, sur le compte Anthropic de la clé. Sans clé, tout le reste de l'application fonctionne gratuitement et hors-ligne.</p>
-        <p>La clé est enregistrée durablement dans ce téléphone / navigateur (<code>localStorage</code> + <code>IndexedDB</code>). Le cours déposé est envoyé à Anthropic uniquement quand tu lances une action IA.</p>
-        <label for="cle">Clé Anthropic</label>
-        <input type="password" id="cle" autocomplete="off" spellcheck="false" placeholder="sk-ant-…">
+        <div id="zone-saisie-cle" class="champ-bloc">
+          <p>Avec une clé Anthropic, l'IA Claude lit vraiment les feuilles déposées dans « Mon cours », remet le cours au propre, l'explique et invente des exercices dessus. Chaque demande est payante, à l'usage, sur le compte Anthropic de la clé. Sans clé, tout le reste de l'application fonctionne gratuitement et hors-ligne.</p>
+          <p>La clé est enregistrée durablement dans ce téléphone / navigateur (<code>localStorage</code> + <code>IndexedDB</code>). Le cours déposé est envoyé à Anthropic uniquement quand tu lances une action IA.</p>
+          <label for="cle">Clé Anthropic</label>
+          <input type="password" id="cle" autocomplete="off" spellcheck="false" placeholder="sk-ant-…">
+          <div class="ligne">
+            <button type="button" class="discret" id="cle-garder">Enregistrer la clé</button>
+          </div>
+          <p class="aide" id="cle-etat" style="margin:0"></p>
+        </div>
+        <div id="zone-cle-active" class="cle-active-bandeau" hidden>
+          <span class="cle-active-texte" id="cle-active-label">✅ Clé API activée</span>
+          <button type="button" class="discret petit" id="cle-retirer">Supprimer la clé</button>
+        </div>
         <label for="modele">Modèle</label>
         <select id="modele">
           <option value="claude-sonnet-5-5">Sonnet 5.5 : recommandé — rapide et précis (environ 5 à 10 centimes)</option>
           <option value="claude-haiku-5-5">Haiku 5.5 : ultra-économique pour remettre au propre (moins d'un centime)</option>
           <option value="claude-opus-5-5">Opus 5.5 : approfondi pour les exercices complexes (10 à 20 centimes)</option>
         </select>
-        <div class="ligne">
-          <button type="button" class="discret" id="cle-garder">Enregistrer la clé</button>
-          <button type="button" class="discret" id="cle-retirer" hidden>Supprimer la clé</button>
-        </div>
-        <p class="aide" id="cle-etat" style="margin:0"></p>
         <p class="aide" id="depense" style="margin:0"></p>
         <div class="ligne">
           <button type="button" class="discret" id="lien-tel" hidden>Copier le lien avec ma clé (pour le téléphone)</button>
@@ -796,9 +801,12 @@ window.MathJax = {
   }
 
   function majIA() {
-    const aUneCle = Boolean(cle());
-    $('cle-etat').textContent = aUneCle ? 'Une clé est enregistrée durablement sur cet appareil.' : 'Aucune clé enregistrée.';
-    $('cle-retirer').hidden = !aUneCle;
+    const c = cle();
+    const aUneCle = Boolean(c);
+    $('zone-saisie-cle').hidden = aUneCle;
+    $('zone-cle-active').hidden = !aUneCle;
+    $('cle-active-label').textContent = '✅ Clé API activée' + (c.length > 8 ? ' (…' + c.slice(-4) + ')' : '');
+    $('cle-etat').textContent = aUneCle ? '' : 'Aucune clé enregistrée.';
     $('lien-tel').hidden = !aUneCle;
     $('partager-tel').hidden = !(aUneCle && typeof navigator.share === 'function');
     $('modele').value = modele();
