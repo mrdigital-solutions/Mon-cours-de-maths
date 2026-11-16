@@ -1,7 +1,7 @@
 /* Service Worker de l'application « Mes cours de 1re » :
    - Pré-cache les fichiers du site pour fonctionner hors-ligne sur téléphone.
    - Stratégie Network-first sur nos fichiers afin de récupérer immédiatement les mises à jour. */
-const CACHE_NAME = 'cours-1re-v8';
+const CACHE_NAME = 'cours-1re-v9';
 const CORE_ASSETS = [
   './',
   './index.html',
