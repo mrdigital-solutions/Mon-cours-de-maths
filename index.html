@@ -14,204 +14,7 @@
 <link rel="icon" type="image/svg+xml" href="pwa-192x192.svg">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
-<style>
-/* Une colonne, comme une page de cahier quadrillé : on choisit la matière, le chapitre (ou Mon cours),
-   puis une des trois bulles, et la réponse s'affiche dessous. */
-:root {
-  --bg: #f1f4fa; --grid: #dfe5f1; --surface: #ffffff; --ink: #1a2340; --muted: #586384; --line: #cfd7e8;
-  --lesson: #7436b0; --lesson-soft: #efe5fa;
-  --explain: #2748c8; --explain-soft: #e6ebfc;
-  --practice: #0b7350; --practice-soft: #dff3ea;
-  --on-accent: #ffffff;
-  --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
-  --body: "Atkinson Hyperlegible", Verdana, system-ui, sans-serif;
-}
-:root { color-scheme: light; }
-html[data-theme="dark"] {
-  --bg: #10141f; --grid: #1a2030; --surface: #19202f; --ink: #e9edf8; --muted: #9ca7c6; --line: #2e3854;
-  --lesson: #c9a2ff; --lesson-soft: #2a2042; --explain: #8fa6ff; --explain-soft: #1f294a;
-  --practice: #5ed1a3; --practice-soft: #17342b; --on-accent: #0e1220; color-scheme: dark;
-}
-* { box-sizing: border-box; }
-[hidden] { display: none !important; }
-html { -webkit-text-size-adjust: 100%; }
-body {
-  margin: 0; background-color: var(--bg);
-  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 24px 24px;
-  color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.6;
-  padding: max(24px, env(safe-area-inset-top)) 16px max(64px, env(safe-area-inset-bottom));
-}
-.page { max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
-.entete { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; justify-content: space-between; }
-.entete-texte { flex: 1 1 320px; }
-header h1 { font-family: var(--display); font-weight: 800; font-size: clamp(1.8rem, 6vw, 2.5rem); line-height: 1.05; margin: 0 0 6px; letter-spacing: -0.01em; }
-header p { margin: 0; color: var(--muted); max-width: 58ch; }
-.pwa-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.btn-install {
-  font: inherit; font-size: 0.92rem; font-weight: 700; color: var(--on-accent);
-  background: var(--explain); border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer;
-}
-.guide-install {
-  background: var(--explain-soft); border: 1px solid var(--line); border-radius: 12px;
-  padding: 12px 16px; font-size: 0.94rem; margin-top: 10px;
-}
-.guide-install p { margin: 4px 0; max-width: none; color: var(--ink); }
-
-.matieres {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-  background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 5px; margin-bottom: 16px;
-}
-.matiere-btn {
-  font: inherit; font-weight: 700; color: var(--muted); background: transparent;
-  border: 0; border-radius: 9px; padding: 10px 12px; cursor: pointer; text-align: center;
-}
-.matiere-btn[aria-pressed="true"] {
-  background: var(--surface); color: var(--ink); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-.feuille { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
-.feuille h2 { font-family: var(--display); font-weight: 600; font-size: 1.1rem; margin: 0 0 12px; }
-.chapitres { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
-.chap {
-  font: inherit; text-align: left; color: var(--ink); background: var(--bg); cursor: pointer;
-  border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0;
-}
-.chap:hover { border-color: var(--muted); }
-.chap.perso { border-style: dashed; border-color: var(--explain); }
-.chap[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); border-style: solid; font-weight: 700; }
-button:focus-visible, summary:focus-visible { outline: 3px solid var(--explain); outline-offset: 2px; }
-.aide { color: var(--muted); font-size: 0.92rem; margin: 12px 0 0; }
-.moncours { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
-.moncours h2 { margin: 0; flex: 1 1 100%; }
-.fichier { position: relative; display: inline-flex; }
-.fichier input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
-.fichier:focus-within { outline: 3px solid var(--explain); outline-offset: 2px; }
-.moncours a { color: var(--explain); font-weight: 700; overflow-wrap: anywhere; }
-#message-cours { flex: 1 1 100%; margin: 0; }
-.fichiers { flex: 1 1 100%; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.fichiers li { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; min-width: 0; }
-#ia-actions { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 8px; }
-.plein { font: inherit; font-weight: 700; color: var(--on-accent); background: var(--explain); border: 0; border-radius: 999px; padding: 8px 16px; cursor: pointer; }
-.plein.cours { background: var(--lesson); }
-.plein.vert { background: var(--practice); }
-.btn-params { font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
-.modal-fond {
-  position: fixed; inset: 0; z-index: 100; background: rgba(16, 20, 31, 0.55);
-  display: flex; align-items: flex-start; justify-content: center;
-  padding: max(20px, env(safe-area-inset-top)) 14px max(24px, env(safe-area-inset-bottom));
-  overflow-y: auto;
-}
-.modal-carte {
-  width: 100%; max-width: 580px; background: var(--surface); color: var(--ink);
-  border: 1px solid var(--line); border-radius: 16px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22); overflow: hidden; margin: auto 0;
-}
-.modal-tete {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--bg);
-}
-.modal-tete h2 { font-family: var(--display); font-weight: 800; font-size: 1.2rem; margin: 0; }
-.modal-corps { padding: 16px 18px 20px; display: flex; flex-direction: column; gap: 14px; }
-.modal-corps p { margin: 0; font-size: 0.94rem; }
-.champ-bloc { display: flex; flex-direction: column; gap: 8px; }
-.champ-bloc h3 { font-family: var(--display); font-weight: 700; font-size: 1.02rem; margin: 0; }
-.modal-corps label { font-weight: 700; font-size: 0.95rem; }
-.modal-corps input, .modal-corps select {
-  font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line);
-  border-radius: 10px; padding: 9px 12px; width: 100%; max-width: 100%;
-}
-.modal-corps input:focus-visible, .modal-corps select:focus-visible { outline: 3px solid var(--explain); outline-offset: 2px; }
-.sous-bloc { border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
-.sous-bloc h3 { font-family: var(--display); font-weight: 700; font-size: 1.02rem; margin: 0; }
-
-.bulles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.bulle {
-  font: inherit; text-align: left; cursor: pointer; color: var(--on-accent); border: 0;
-  padding: 18px 20px 20px; border-radius: 28px 28px 28px 6px;
-  display: flex; flex-direction: column; gap: 4px; min-width: 0; transition: transform .12s ease, box-shadow .12s ease;
-}
-.bulle strong { font-family: var(--display); font-weight: 800; font-size: 1.3rem; line-height: 1.15; }
-.bulle span { font-size: 0.95rem; opacity: 0.92; }
-.bulle.cours { background: var(--lesson); }
-.bulle.simple { background: var(--explain); }
-.bulle.exo { background: var(--practice); border-radius: 28px 28px 6px 28px; }
-.bulle:hover { transform: translateY(-2px); }
-.bulle[aria-pressed="true"] {
-  box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--ink), 0 8px 18px rgba(0, 0, 0, 0.14);
-  transform: translateY(-2px);
-}
-@media (max-width: 760px) { .bulles { grid-template-columns: 1fr; } }
-@media (prefers-reduced-motion: reduce) { .bulle { transition: none; } }
-
-.panneau { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-.tete { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--line); }
-.panneau.cours .tete { background: var(--lesson-soft); }
-.panneau.simple .tete { background: var(--explain-soft); }
-.panneau.exo .tete { background: var(--practice-soft); }
-.tete h2 { font-family: var(--display); font-weight: 800; font-size: 1.25rem; margin: 0; }
-.ligne { display: flex; flex-wrap: wrap; gap: 8px; }
-.discret { font: inherit; font-size: 0.92rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
-.discret:hover { border-color: var(--muted); }
-.corps { padding: 6px 18px 18px; min-width: 0; }
-
-.rendu { min-width: 0; overflow-wrap: anywhere; }
-.rendu h3 { font-family: var(--display); font-weight: 800; font-size: 1.15rem; margin: 22px 0 6px; }
-.panneau.cours .rendu h3 { color: var(--lesson); }
-.panneau.simple .rendu h3 { color: var(--explain); }
-.rendu p { margin: 8px 0; max-width: 70ch; }
-.rendu ul, .rendu ol { margin: 8px 0; padding-left: 1.4em; max-width: 70ch; }
-.rendu li { margin: 5px 0; }
-.rendu .formule { overflow-x: auto; overflow-y: hidden; text-align: center; padding: 6px 0; max-width: 100%; }
-.rendu mjx-container { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
-
-.exercice { border-top: 1px solid var(--line); padding: 16px 0 6px; }
-.exercice:first-child { border-top: 0; }
-.exercice h3 { font-family: var(--display); font-weight: 800; font-size: 1.1rem; margin: 0 0 4px; color: var(--practice); }
-.niveau { font-family: var(--body); font-weight: 400; font-size: 0.85rem; color: var(--muted); margin-left: 6px; }
-details { border: 1px solid var(--line); border-radius: 10px; margin: 10px 0; background: var(--bg); }
-summary { cursor: pointer; padding: 9px 14px; font-weight: 700; border-radius: 10px; }
-details > .rendu { padding: 0 14px 10px; }
-footer { color: var(--muted); font-size: 0.88rem; }
-
-.historique { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
-.historique h2 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 1.1rem; }
-.hist-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.hist-item {
-  display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; justify-content: space-between;
-  background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
-}
-.hist-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px; }
-.hist-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.84rem; color: var(--muted); }
-.badge { font-size: 0.78rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; color: var(--on-accent); }
-.badge.cours { background: var(--lesson); }
-.badge.simple { background: var(--explain); }
-.badge.exo { background: var(--practice); }
-.hist-sujet { font-weight: 700; overflow-wrap: anywhere; }
-.hist-btns { display: flex; flex-wrap: wrap; gap: 6px; }
-.discret.petit { font-size: 0.85rem; padding: 4px 10px; }
-.discret.pdf-btn { font-weight: 700; }
-.pdf-feuille {
-  position: fixed; left: -99999px; top: 0; width: 740px; padding: 28px 34px;
-  background: #ffffff; color: #1a2340; font-family: var(--body); font-size: 16px; line-height: 1.6;
-}
-.pdf-feuille h1 { font-family: var(--display); font-weight: 800; font-size: 24px; margin: 0 0 4px; color: #1a2340; }
-.pdf-feuille .pdf-meta { font-size: 13px; color: #586384; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 2px solid #cfd7e8; }
-.pdf-feuille h3 { font-family: var(--display); font-weight: 800; font-size: 18px; margin: 18px 0 6px; color: #2748c8; }
-.pdf-feuille.cours h3 { color: #7436b0; }
-.pdf-feuille.exo h3 { color: #0b7350; }
-.pdf-feuille details { border: 1px solid #cfd7e8; background: #f8fafe; border-radius: 8px; margin: 8px 0; }
-.pdf-feuille summary { display: block; list-style: none; padding: 7px 12px; font-weight: 700; color: #1a2340; }
-.pdf-feuille summary::-webkit-details-marker { display: none; }
-.pdf-feuille .rendu p { max-width: none; }
-@media print {
-  body { background: #ffffff; background-image: none; color: #000000; padding: 0; }
-  header, .feuille, .bulles, footer, .tete button, .tete .ligne, .modal-fond { display: none !important; }
-  .panneau { border: 0; }
-  .panneau .tete { background: #ffffff !important; border-bottom: 2px solid #000000; }
-  details { break-inside: avoid; }
-}
-</style>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="page">
@@ -238,26 +41,37 @@ footer { color: var(--muted); font-size: 0.88rem; }
       <button type="button" class="matiere-btn" data-matiere="maths" aria-pressed="true">Mathématiques</button>
       <button type="button" class="matiere-btn" data-matiere="pc" aria-pressed="false">Physique-Chimie</button>
     </div>
-    <h2>Choisis ton chapitre</h2>
+    <div class="entete-chapitres">
+      <h2>Choisis ton chapitre</h2>
+      <span class="aide" id="compteur-revises"></span>
+    </div>
     <div class="chapitres" id="chapitres"></div>
     <div class="moncours">
       <h2>Ou dépose ton cours</h2>
       <span class="discret fichier">
-        Ajouter des feuilles (PDF, photos ou texte)
+        📄 Ajouter des feuilles (PDF, photos ou texte)
         <input type="file" id="depot" multiple accept=".pdf,.txt,application/pdf,text/plain,image/*" aria-label="Déposer les feuilles de mon cours">
       </span>
+      <span class="discret fichier">
+        📷 Prendre une photo
+        <input type="file" id="depot-photo" accept="image/*" capture="environment" aria-label="Prendre en photo mon cours">
+      </span>
+      <button type="button" class="discret petit" id="vider-feuilles" hidden>Tout retirer</button>
       <ul id="fichiers" class="fichiers" hidden></ul>
       <p class="aide" id="message-cours" role="status" aria-live="polite">Dépose les feuilles de ton cours (PDF, photos ou texte) : elles restent sur ton appareil, dans « Mon cours ».</p>
-      <div id="ia-actions" hidden>
-        <button type="button" class="plein cours" id="ia-cours">Mon cours au propre (IA)</button>
-        <button type="button" class="plein" id="ia-expl">Explique mon cours (IA)</button>
-        <button type="button" class="plein vert" id="ia-exo">Exercices sur mon cours (IA)</button>
-      </div>
     </div>
 
     <div class="historique" id="historique-zone" hidden>
       <h2>Historique de mes cours et exercices générés</h2>
       <p class="aide" style="margin:0">Tout ce que l'IA génère reste enregistré ici sur ton appareil, même si tu changes de feuilles ou fermes l'application.</p>
+      <div class="hist-filtres">
+        <select id="hist-filtre-matiere" aria-label="Filtrer l'historique par matière">
+          <option value="toutes">Toutes les matières</option>
+          <option value="maths">Mathématiques</option>
+          <option value="pc">Physique-Chimie</option>
+        </select>
+        <input type="search" id="hist-recherche" placeholder="Rechercher un sujet ou chapitre…" aria-label="Rechercher dans l'historique">
+      </div>
       <ul id="historique-liste" class="hist-liste"></ul>
     </div>
   </section>
@@ -282,10 +96,12 @@ footer { color: var(--muted); font-size: 0.88rem; }
       <h2 id="titre-panneau"></h2>
       <div class="ligne">
         <div class="ligne" id="outils-exo" hidden>
+          <button type="button" class="discret" data-niveau="flash">⚡ 1 question flash</button>
           <button type="button" class="discret" data-niveau="0">Plus faciles</button>
           <button type="button" class="discret" data-niveau="mix">D'autres exercices</button>
           <button type="button" class="discret" data-niveau="2">Plus difficiles</button>
         </div>
+        <button type="button" class="discret" id="btn-revise" hidden>✓ Marquer comme révisé</button>
         <button type="button" class="discret pdf-btn" id="btn-pdf" hidden>Télécharger en PDF</button>
         <button type="button" class="discret" id="stop-ia" hidden>Arrêter</button>
       </div>
@@ -321,9 +137,9 @@ footer { color: var(--muted); font-size: 0.88rem; }
         <input type="password" id="cle" autocomplete="off" spellcheck="false" placeholder="sk-ant-…">
         <label for="modele">Modèle</label>
         <select id="modele">
-          <option value="claude-opus-5-5">Opus 5.5 : le plus fiable (environ 10 à 20 centimes par demande)</option>
-          <option value="claude-sonnet-5-5">Sonnet 5.5 : intermédiaire (environ 5 à 10 centimes)</option>
-          <option value="claude-haiku-5-5">Haiku 5.5 : économique (moins d'un centime)</option>
+          <option value="claude-sonnet-5-5">Sonnet 5.5 : recommandé — rapide et précis (environ 5 à 10 centimes)</option>
+          <option value="claude-haiku-5-5">Haiku 5.5 : ultra-économique pour remettre au propre (moins d'un centime)</option>
+          <option value="claude-opus-5-5">Opus 5.5 : approfondi pour les exercices complexes (10 à 20 centimes)</option>
         </select>
         <div class="ligne">
           <button type="button" class="discret" id="cle-garder">Enregistrer la clé</button>
@@ -489,6 +305,51 @@ window.MathJax = {
   let genre = lire('maths-genre', 'cours');
   if (!['cours', 'simple', 'exo'].includes(genre)) genre = 'cours';
 
+  const lireRevises = () => {
+    try { const v = JSON.parse(lire('maths-revises', '[]')); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+  };
+  function majProgressionChapitres() {
+    const revises = new Set(lireRevises());
+    const cours = coursActuels();
+    let nb = 0;
+    zone.querySelectorAll('.chap[data-id]').forEach((b) => {
+      const id = b.dataset.id;
+      if (id === 'mon-cours') return;
+      const c = cours.find((x) => x.id === id);
+      if (!c) return;
+      const fait = revises.has(id);
+      if (fait) nb++;
+      b.textContent = c.titre;
+      if (fait) {
+        const sp = document.createElement('span');
+        sp.className = 'coche-revise';
+        sp.setAttribute('aria-hidden', 'true');
+        sp.textContent = ' ✓';
+        b.append(sp);
+      }
+    });
+    const comp = $('compteur-revises');
+    if (comp) comp.textContent = nb + ' / ' + cours.length + ' révisés';
+    const btnRev = $('btn-revise');
+    if (btnRev) {
+      const estProg = chapitre !== 'mon-cours';
+      btnRev.hidden = !estProg;
+      if (estProg) {
+        const fait = revises.has(chapitre);
+        btnRev.setAttribute('aria-pressed', String(fait));
+        btnRev.textContent = fait ? '✓ Chapitre révisé' : '✓ Marquer comme révisé';
+      }
+    }
+  }
+  const basculerRevise = (id) => {
+    if (!id || id === 'mon-cours') return;
+    const set = new Set(lireRevises());
+    if (set.has(id)) set.delete(id); else set.add(id);
+    ecrire('maths-revises', JSON.stringify([...set]));
+    majProgressionChapitres();
+  };
+  if ($('btn-revise')) $('btn-revise').onclick = () => basculerRevise(chapitre);
+
   const zone = $('chapitres');
   function construireChapitres() {
     zone.textContent = '';
@@ -502,6 +363,7 @@ window.MathJax = {
       b.onclick = () => { chapitre = c.id; ecrire(cleChapitre(matiere), c.id); afficher(); };
       zone.append(b);
     });
+    majProgressionChapitres();
   }
   function majBoutonsMatieres() {
     document.querySelectorAll('.matiere-btn').forEach((b) => {
@@ -701,12 +563,44 @@ window.MathJax = {
     adresses.forEach((a) => URL.revokeObjectURL(a)); adresses = [];
     const liste = $('fichiers'); liste.textContent = '';
     liste.hidden = !feuilles.length;
-    $('ia-actions').hidden = !(feuilles.length && cle());
+    $('vider-feuilles').hidden = feuilles.length < 2;
+    const deplacer = async (i, delta) => {
+      const cur = await lireFeuilles(mat);
+      const cible = i + delta;
+      if (cible < 0 || cible >= cur.length) return;
+      [cur[i], cur[cible]] = [cur[cible], cur[i]];
+      await garderFeuilles(cur, mat);
+      await majFichier();
+    };
     feuilles.forEach((f, i) => {
-      const li = document.createElement('li'), a = document.createElement('a'), b = document.createElement('button');
+      const li = document.createElement('li'), a = document.createElement('a');
       const adresse = URL.createObjectURL(blobs[i]); adresses.push(adresse);
       a.href = adresse; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Feuille ' + (i + 1) + ' : ' + f.name;
-      b.type = 'button'; b.className = 'discret'; b.textContent = 'Retirer';
+      li.append(a);
+      if (feuilles.length > 1) {
+        for (const [label, delta, titre] of [['↑', -1, 'Monter la feuille '], ['↓', 1, 'Descendre la feuille ']]) {
+          const btn = document.createElement('button');
+          btn.type = 'button'; btn.className = 'discret petit'; btn.textContent = label;
+          btn.setAttribute('aria-label', titre + (i + 1));
+          btn.disabled = (delta === -1 && i === 0) || (delta === 1 && i === feuilles.length - 1);
+          btn.onclick = () => deplacer(i, delta);
+          li.append(btn);
+        }
+      }
+      const bRen = document.createElement('button');
+      bRen.type = 'button'; bRen.className = 'discret petit'; bRen.textContent = 'Renommer';
+      bRen.setAttribute('aria-label', 'Renommer la feuille ' + (i + 1));
+      bRen.onclick = async () => {
+        const nom = window.prompt('Nouveau nom pour cette feuille :', f.name);
+        if (!nom || !nom.trim()) return;
+        const cur = await lireFeuilles(mat);
+        if (!cur[i]) return;
+        cur[i] = { ...cur[i], name: nom.trim() };
+        await garderFeuilles(cur, mat);
+        await majFichier();
+      };
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'discret petit'; b.textContent = 'Retirer';
       b.setAttribute('aria-label', 'Retirer la feuille ' + (i + 1));
       b.onclick = async () => {
         const reste = (await lireFeuilles(mat)).filter((_, j) => j !== i);
@@ -715,9 +609,16 @@ window.MathJax = {
         await majFichier();
         if (chapitre === 'mon-cours') afficher();
       };
-      li.append(a, b); liste.append(li);
+      li.append(bRen, b); liste.append(li);
     });
   }
+  $('vider-feuilles').onclick = async () => {
+    if (!window.confirm('Retirer toutes les feuilles déposées pour cette matière ?')) return;
+    await garderFeuilles([], matiere);
+    dire('Toutes les feuilles ont été retirées.');
+    await majFichier();
+    if (chapitre === 'mon-cours') afficher();
+  };
 
   const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
   let pdfPret = null;
@@ -742,8 +643,7 @@ window.MathJax = {
     if (f.type.startsWith('text/') || /\.txt$/i.test(f.name)) return f.text();
     return '';
   }
-  $('depot').addEventListener('change', async (e) => {
-    const brutes = [...e.target.files]; e.target.value = '';
+  async function ajouterFichiersAuCours(brutes) {
     if (!brutes.length) return;
     dire('Préparation et sauvegarde de tes feuilles…');
     let texte = '';
@@ -771,7 +671,7 @@ window.MathJax = {
     const total = ' (' + feuilles.length + ' au total dans « Mon cours » · ' + nomMat + ').';
     if (cle()) {
       chapitre = 'mon-cours'; ecrire(cleChapitre(cibleMatiere), 'mon-cours');
-      dire(combien + total + ' Choisis une action IA ou clique sur une bulle.');
+      dire(combien + total + ' Clique sur une bulle ci-dessous.');
     } else if (trouve) {
       chapitre = trouve; ecrire(cleChapitre(cibleMatiere), trouve);
       const titre = coursActuels().find((c) => c.id === trouve).titre;
@@ -784,14 +684,32 @@ window.MathJax = {
     genre = 'simple';
     ecrire('maths-genre', genre);
     afficher();
-  });
+  }
+  const gererSelectionFichiers = (e) => {
+    const brutes = [...e.target.files];
+    e.target.value = '';
+    ajouterFichiersAuCours(brutes);
+  };
+  $('depot').addEventListener('change', gererSelectionFichiers);
+  $('depot-photo').addEventListener('change', gererSelectionFichiers);
 
   const NIVEAUX = ['pour démarrer', 'niveau contrôle', 'pour aller plus loin'];
   function exercices(niveau) {
     const modeles = exosActuels()[chapitre];
-    const choix = niveau === 'mix' ? [0, 1, 2] : [Number(niveau), Number(niveau), Number(niveau)];
     sortie.textContent = '';
-    choix.forEach((n, i) => sortie.append(carte(i + 1, modeles[n](), NIVEAUX[n])));
+    if (niveau === 'flash') {
+      const idx = Math.floor(Math.random() * modeles.length);
+      sortie.append(carte(1, modeles[idx](), 'question flash (5 min)'));
+      const bFlash = document.createElement('button');
+      bFlash.type = 'button';
+      bFlash.className = 'discret flash-relance';
+      bFlash.textContent = '⚡ Autre question flash';
+      bFlash.onclick = () => afficher('flash');
+      sortie.append(bFlash);
+    } else {
+      const choix = niveau === 'mix' ? [0, 1, 2] : [Number(niveau), Number(niveau), Number(niveau)];
+      choix.forEach((n, i) => sortie.append(carte(i + 1, modeles[n](), NIVEAUX[n])));
+    }
     typographier(sortie);
   }
   function carte(numero, e, etiquette) {
@@ -804,6 +722,33 @@ window.MathJax = {
       const d = document.createElement('details'), s = document.createElement('summary');
       s.textContent = titre; d.append(s, bloc(texte)); art.append(d);
     }
+    const verifD = document.createElement('details'); verifD.className = 'verif-brouillon';
+    const verifS = document.createElement('summary'); verifS.textContent = '✍️ Vérifier mon brouillon (photo ou réponse)';
+    const corps = document.createElement('div'); corps.className = 'verif-corps';
+    const zoneTxt = document.createElement('textarea'); zoneTxt.className = 'verif-texte'; zoneTxt.rows = 2;
+    zoneTxt.placeholder = 'Écris ta réponse ou tes calculs ici, ou joins une photo de ton brouillon…';
+    zoneTxt.setAttribute('aria-label', 'Ta réponse ou ton brouillon pour l\'exercice ' + numero);
+    const actions = document.createElement('div'); actions.className = 'verif-actions';
+    const spanPhoto = document.createElement('span'); spanPhoto.className = 'discret petit fichier';
+    spanPhoto.textContent = '📷 Joindre mon brouillon';
+    const inputPhoto = document.createElement('input'); inputPhoto.type = 'file'; inputPhoto.accept = 'image/*'; inputPhoto.capture = 'environment';
+    inputPhoto.setAttribute('aria-label', 'Joindre une photo de ton brouillon');
+    spanPhoto.append(inputPhoto);
+    const nomPhoto = document.createElement('span'); nomPhoto.className = 'aide verif-nom-photo';
+    const btnVerif = document.createElement('button'); btnVerif.type = 'button'; btnVerif.className = 'plein vert petit';
+    btnVerif.textContent = 'Faire vérifier (IA)';
+    const zoneRes = document.createElement('div'); zoneRes.className = 'rendu verif-sortie';
+    let photo = null;
+    inputPhoto.onchange = () => {
+      photo = inputPhoto.files[0] || null;
+      inputPhoto.value = '';
+      nomPhoto.textContent = photo ? 'Photo : ' + photo.name : '';
+    };
+    btnVerif.onclick = () => verifierBrouillon(e, zoneTxt.value, photo, zoneRes, btnVerif);
+    actions.append(spanPhoto, nomPhoto, btnVerif);
+    corps.append(zoneTxt, actions, zoneRes);
+    verifD.append(verifS, corps);
+    art.append(verifD);
     return art;
   }
 
@@ -811,7 +756,7 @@ window.MathJax = {
   const SDK = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.3.0/+esm';
   const TARIFS = { 'claude-opus-5-5': [4, 20], 'claude-sonnet-5-5': [2, 10], 'claude-haiku-5-5': [0.1, 0.5] }; /* $ par million de tokens : entrée, sortie */
   const cle = () => lire('maths-cle', '');
-  const modele = () => { const m = lire('maths-modele', 'claude-opus-5-5'); return TARIFS[m] ? m : 'claude-opus-5-5'; };
+  const modele = () => { const m = lire('maths-modele', 'claude-sonnet-5-5'); return TARIFS[m] ? m : 'claude-sonnet-5-5'; };
   const dollars = (x) => (x < 0.01 ? 'moins de 0,01' : x.toFixed(2).replace('.', ',')) + ' $';
 
   async function sauverParamsIA() {
@@ -979,7 +924,9 @@ window.MathJax = {
         'Si le contenu joint n\'est pas un cours scientifique, écris "SUJET: Hors programme" puis dis-le gentiment en deux phrases et arrête-toi là.\n' + format;
     }
     if (type === 'exo') {
-      const consigneNiveau = niveauExo === '0'
+      const consigneNiveau = niveauExo === 'flash'
+        ? 'Prépare 1 seul exercice court (question flash faisable en 5 minutes) portant uniquement sur ce cours.'
+        : niveauExo === '0'
         ? 'Prépare 3 exercices faciles et très guidés portant uniquement sur ce cours, pour prendre confiance étape par étape.'
         : niveauExo === '2'
         ? 'Prépare 3 exercices un peu plus exigeants (type fin de contrôle / approfondissement) portant uniquement sur ce cours.'
@@ -1065,6 +1012,7 @@ window.MathJax = {
         clone.querySelectorAll('.aide, .plein').forEach((n) => n.remove());
         conteneur.append(clone);
       }
+      conteneur.querySelectorAll('.verif-brouillon, .flash-relance').forEach((n) => n.remove());
       conteneur.querySelectorAll('details').forEach((d) => { d.open = true; });
       document.body.append(conteneur);
 
@@ -1144,7 +1092,22 @@ window.MathJax = {
     $('historique-zone').hidden = !liste.length;
     const ul = $('historique-liste');
     ul.textContent = '';
-    liste.forEach((item) => {
+    if (!liste.length) return;
+    const filtreMat = $('hist-filtre-matiere') ? $('hist-filtre-matiere').value : 'toutes';
+    const recherche = $('hist-recherche') ? $('hist-recherche').value.trim().toLowerCase() : '';
+    const filtrees = liste.filter((item) => {
+      if (filtreMat !== 'toutes' && (item.matiere === 'pc' ? 'pc' : 'maths') !== filtreMat) return false;
+      if (!recherche) return true;
+      const foin = [item.sujet || '', LIBELLES_TYPE[item.type] || '', ...(item.feuillesNoms || [])].join(' ').toLowerCase();
+      return foin.includes(recherche);
+    });
+    if (!filtrees.length) {
+      const vide = document.createElement('li'); vide.className = 'aide';
+      vide.textContent = 'Aucune fiche ne correspond à ta recherche.';
+      ul.append(vide);
+      return;
+    }
+    filtrees.forEach((item) => {
       const li = document.createElement('li'); li.className = 'hist-item';
       const info = document.createElement('div'); info.className = 'hist-info';
       const meta = document.createElement('div'); meta.className = 'hist-meta';
@@ -1188,6 +1151,8 @@ window.MathJax = {
       ul.append(li);
     });
   }
+  $('hist-filtre-matiere').onchange = majHistorique;
+  $('hist-recherche').oninput = majHistorique;
 
   async function ouvrirEntreeHistorique(item) {
     arreterIA();
@@ -1223,6 +1188,7 @@ window.MathJax = {
     const titre = TITRES_IA[type] + ' · ' + (sujet || 'Mon cours');
     panneau.className = 'panneau ' + type;
     majBulles(type);
+    majProgressionChapitres();
     $('outils-exo').hidden = !(type === 'exo' && peutRegenerer);
     $('titre-panneau').textContent = titre;
     documentActuel = { titre, type, texte: corps, matiere: matCible, date };
@@ -1257,6 +1223,98 @@ window.MathJax = {
     }
     sortie.append(zoneTexte);
     typographier(sortie);
+  }
+
+  function messageErreurIA(Anthropic, e) {
+    const A = Anthropic || {};
+    const est = (K) => K && e instanceof K;
+    return e && e.message === 'trop-lourd' ? 'Ces feuilles sont trop lourdes ensemble (plus de 20 Mo). Retires-en quelques-unes ou dépose des fichiers plus légers.' :
+      est(A.APIUserAbortError) ? 'Arrêté.' :
+      est(A.AuthenticationError) ? 'La clé Anthropic est refusée. Vérifie-la dans « ⚙️ Paramètres ».' :
+      est(A.PermissionDeniedError) ? 'Cette clé n\'a pas le droit d\'utiliser ce modèle. Essaie un autre modèle dans « ⚙️ Paramètres ».' :
+      est(A.RateLimitError) ? 'Trop de demandes pour l\'instant. Réessaie dans une minute.' :
+      est(A.BadRequestError) && /credit|billing/i.test(e.message || '') ? 'Le compte Anthropic n\'a plus de crédit. Il faut en ajouter sur le compte de la clé.' :
+      est(A.BadRequestError) ? 'Claude n\'a pas pu lire ce fichier (' + (e.message || 'demande refusée') + ').' :
+      est(A.APIConnectionError) || !Anthropic ? 'Connexion impossible. Vérifie Internet, puis réessaie.' :
+      'Un problème est survenu. Réessaie dans un instant.';
+  }
+
+  async function verifierBrouillon(exo, texteEleve, fichierPhoto, zoneSortie, btn) {
+    if (!cle()) {
+      zoneSortie.textContent = '';
+      const p = document.createElement('p'); p.className = 'aide'; p.style.margin = '0';
+      p.textContent = 'Enregistre une clé Anthropic dans ⚙️ Paramètres pour faire vérifier ton brouillon par Claude.';
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'discret petit';
+      b.textContent = '⚙️ Ouvrir les paramètres'; b.onclick = ouvrirParametres;
+      zoneSortie.append(p, b);
+      return;
+    }
+    const repTxt = (texteEleve || '').trim();
+    if (!repTxt && !fichierPhoto) {
+      zoneSortie.textContent = '';
+      const p = document.createElement('p'); p.className = 'aide'; p.style.margin = '0';
+      p.textContent = 'Écris ta réponse ou joins une photo de ton brouillon avant de lancer la vérification.';
+      zoneSortie.append(p);
+      return;
+    }
+    const ancienLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Vérification…';
+    const pEtat = document.createElement('p'); pEtat.className = 'aide'; pEtat.style.margin = '4px 0';
+    pEtat.textContent = 'Claude regarde ton brouillon…';
+    const corpsRendu = document.createElement('div');
+    zoneSortie.textContent = '';
+    zoneSortie.append(pEtat, corpsRendu);
+
+    let Anthropic = null;
+    try {
+      const pieces = [];
+      if (fichierPhoto) {
+        const fPrep = await preparerFeuille(fichierPhoto, '');
+        pieces.push(...await blocsDuFichier(fPrep));
+      }
+      const prompt = (matiere === 'pc'
+        ? 'Tu es un professeur de physique-chimie de première générale patient et encourageant.'
+        : 'Tu es un professeur de mathématiques de première générale patient et encourageant.') +
+        '\nVoici l\'énoncé de l\'exercice :\n<enonce>\n' + (exo.enonce || '') + '\n</enonce>\n' +
+        (exo.correction ? '<correction_reference>\n' + exo.correction + '\n</correction_reference>\n' : '') +
+        (repTxt ? '<reponse_eleve>\n' + repTxt + '\n</reponse_eleve>\n' : '') +
+        (fichierPhoto ? 'Le brouillon de l\'élève est joint en photo ci-dessus.\n' : '') +
+        '\nAnalyse sa démarche avec bienveillance en suivant exactement ces 3 courtes parties :\n' +
+        '## Ce qui est bien\n## Ce qu\'il faut corriger\n## Conseil pour finir\n' +
+        'Écris en français, tutoie l\'élève, et mets toutes les expressions mathématiques et unités en LaTeX entre dollars simples ($...$).';
+      pieces.push({ type: 'text', text: prompt });
+
+      Anthropic = (await import(SDK)).default;
+      const client = new Anthropic({ apiKey: cle(), dangerouslyAllowBrowser: true });
+      const m = modele();
+      const s = client.messages.stream({
+        model: m, max_tokens: 2048,
+        messages: [{ role: 'user', content: pieces }]
+      });
+      let txt = '', majDernier = 0;
+      for await (const ev of s) {
+        if (ev.type === 'content_block_delta' && ev.delta.type === 'text_delta') {
+          txt += ev.delta.text;
+          if (Date.now() - majDernier > 500) {
+            majDernier = Date.now();
+            corpsRendu.textContent = ''; corpsRendu.append(bloc(txt)); typographier(corpsRendu);
+          }
+        }
+      }
+      const msg = await s.finalMessage();
+      corpsRendu.textContent = ''; corpsRendu.append(bloc(txt)); typographier(corpsRendu);
+      const u = msg.usage || {}, cout = ((u.input_tokens || 0) * TARIFS[m][0] + (u.output_tokens || 0) * TARIFS[m][1]) / 1e6;
+      ecrire('maths-depense', String(Number(lire('maths-depense', '0')) + cout));
+      pEtat.textContent = 'Vérification terminée · Coût estimé : ' + dollars(cout) + '.';
+      await sauverParamsIA();
+      majIA();
+    } catch (e) {
+      pEtat.textContent = messageErreurIA(Anthropic, e);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = ancienLabel;
+    }
   }
 
   async function lancerIA(type, niveauExo) {
@@ -1302,7 +1360,7 @@ window.MathJax = {
           texte += ev.delta.text;
           const { sujet } = extraireSujet(texte);
           if (sujet) { sujetCourant = sujet; majTitre(); }
-          if (type === 'exo') etat.textContent = 'Claude écrit l\'exercice ' + Math.max(1, (texte.match(/^\s*={3,}\s*EXERCICE/gmi) || []).length) + ' sur 3…';
+          if (type === 'exo') etat.textContent = niveauExo === 'flash' ? 'Claude écrit ta question flash…' : 'Claude écrit l\'exercice ' + Math.max(1, (texte.match(/^\s*={3,}\s*EXERCICE/gmi) || []).length) + ' sur 3…';
           else {
             etat.textContent = type === 'cours' ? 'Claude met ton cours au propre…' : 'Claude écrit l\'explication…';
             if (Date.now() - dernier > 700) { dernier = Date.now(); montrer(); }
@@ -1374,25 +1432,11 @@ window.MathJax = {
     } catch (e) {
       if (monJeton !== jetonIA) return;
       if (texte && type !== 'exo') montrer();
-      const A = Anthropic || {};
-      const est = (K) => K && e instanceof K;
-      etat.textContent =
-        e && e.message === 'trop-lourd' ? 'Ces feuilles sont trop lourdes ensemble (plus de 20 Mo). Retires-en quelques-unes ou dépose des fichiers plus légers.' :
-        est(A.APIUserAbortError) ? 'Arrêté.' :
-        est(A.AuthenticationError) ? 'La clé Anthropic est refusée. Vérifie-la dans « ⚙️ Paramètres ».' :
-        est(A.PermissionDeniedError) ? 'Cette clé n\'a pas le droit d\'utiliser ce modèle. Essaie un autre modèle dans « ⚙️ Paramètres ».' :
-        est(A.RateLimitError) ? 'Trop de demandes pour l\'instant. Réessaie dans une minute.' :
-        est(A.BadRequestError) && /credit|billing/i.test(e.message || '') ? 'Le compte Anthropic n\'a plus de crédit. Il faut en ajouter sur le compte de la clé.' :
-        est(A.BadRequestError) ? 'Claude n\'a pas pu lire ce fichier (' + (e.message || 'demande refusée') + ').' :
-        est(A.APIConnectionError) || !Anthropic ? 'Connexion impossible. Vérifie Internet, puis réessaie.' :
-        'Un problème est survenu. Réessaie dans un instant.';
+      etat.textContent = messageErreurIA(Anthropic, e);
     } finally {
       if (monJeton === jetonIA) { flux = null; $('stop-ia').hidden = true; }
     }
   }
-  $('ia-cours').onclick = () => lancerIA('cours');
-  $('ia-expl').onclick = () => lancerIA('simple');
-  $('ia-exo').onclick = () => lancerIA('exo');
 
   let jetonAffichage = 0;
   async function afficher(niveau, depuisBulle) {
@@ -1400,6 +1444,7 @@ window.MathJax = {
     const mat = matiere;
     zone.querySelectorAll('.chap').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === chapitre)));
     majBulles(genre);
+    majProgressionChapitres();
     arreterIA();
     majFichier();
 

@@ -4,12 +4,13 @@ Une application web installable sur téléphone (PWA) pour réviser la **spécia
 
 - **Le cours** : définitions, formules, méthodes et exemples.
 - **Explique-moi simplement** : l'idée avec des mots simples, un exemple pas à pas, les pièges à éviter.
-- **Des exercices** : trois exercices avec indice et correction détaillée. Les nombres changent à chaque clic et la correction est calculée automatiquement.
-- **Dépôt de son cours** : l'élève peut déposer une ou plusieurs feuilles (PDF, photos ou texte) pour chaque matière. Les feuilles restent sur son appareil (`IndexedDB`) et le site reconnaît automatiquement le chapitre quand le fichier contient du texte.
-- **Mode IA (facultatif, payant)** : avec une clé API Anthropic enregistrée durablement sur l'appareil (`localStorage` + `IndexedDB`), Claude lit toutes les feuilles déposées pour remettre le cours au propre, l'expliquer sur mesure ou générer 3 exercices corrigés adaptés.
-- **Historique permanent & Export PDF** : chaque cours, explication ou série d'exercices générés par l'IA reste conservé dans l'historique sur l'appareil (`IndexedDB` + `localStorage`) et tout contenu (avec ses indices et corrections) peut être téléchargé en PDF en un clic.
-- **Paramètres & Apparence** : bouton **⚙️ Paramètres** en haut à droite pour régler l'apparence (**Clair** par défaut ou **Sombre**), enregistrer la clé Anthropic (Mode IA), transférer la clé vers un téléphone par lien (`#cle=...`) ou forcer la mise à jour de l'application.
-- **Installation téléphone (PWA)** : installable sur Android et iPhone comme une vraie application hors-ligne.
+- **Des exercices & Question flash** : trois exercices avec indice, correction détaillée et mode **⚡ 1 question flash** pour réviser en 5 minutes. Un bloc **✍️ Vérifier mon brouillon** permet aussi de soumettre sa réponse écrite ou prise en photo à Claude.
+- **Suivi de progression** : possibilité de cocher chaque chapitre révisé (`✓`) avec compteur par matière.
+- **Dépôt de son cours** : l'élève peut déposer des feuilles (PDF, photos, texte) ou **prendre directement une photo** depuis son téléphone, puis réordonner, renommer ou retirer ses feuilles. Les feuilles restent sur son appareil (`IndexedDB`) et le site reconnaît automatiquement le chapitre quand le fichier contient du texte.
+- **Mode IA (facultatif, payant)** : avec une clé API Anthropic enregistrée durablement sur l'appareil (`localStorage` + `IndexedDB`), Claude lit toutes les feuilles déposées pour remettre le cours au propre, l'expliquer sur mesure, générer des exercices adaptés ou vérifier un brouillon.
+- **Historique permanent avec recherche & Export PDF** : chaque cours, explication ou série d'exercices générés par l'IA reste conservé dans l'historique sur l'appareil (`IndexedDB` + `localStorage`) avec filtre par matière, recherche par mot-clé et export PDF en un clic.
+- **Paramètres & Apparence** : bouton **⚙️ Paramètres** en haut à droite pour régler l'apparence (**Clair** par défaut ou **Sombre**), enregistrer la clé Anthropic (Mode IA, Sonnet 5.5 par défaut), transférer la clé vers un téléphone par lien (`#cle=...`) ou forcer la mise à jour de l'application.
+- **Installation téléphone (PWA)** : installable sur Android et iPhone comme une vraie application hors-ligne (avec pré-cache des ressources principales et bibliothèques mathématiques/PDF).
 
 ## Programmes couverts
 
@@ -18,12 +19,11 @@ Une application web installable sur téléphone (PWA) pour réviser la **spécia
 
 ## Fichiers
 
-- `index.html` : application PWA, sélecteur Maths / Physique-Chimie, dépôt multi-feuilles, mode IA et réglages téléphone.
+- `index.html` & `styles.css` : application PWA, interface et feuille de styles.
 - `cours.js` / `exercices.js` : cours, explications simples et exercices aléatoires de Mathématiques.
 - `physique-cours.js` / `physique-exercices.js` : cours, explications simples et exercices aléatoires de Physique-Chimie.
 - `reconnaitre.js` : reconnaissance locale du chapitre (Maths et Physique-Chimie).
 - `manifest.webmanifest`, `sw.js`, `icon-192.png`, `icon-512.png`, `pwa-192x192.svg`, `pwa-512x512.svg` : fichiers PWA pour l'installation mobile et le mode hors-ligne.
-- `cours-maths.html` : ancienne version autonome sous forme d'artifact Claude (non utilisée par le site).
 
 ## Mise en ligne
 

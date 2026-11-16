@@ -1,10 +1,11 @@
 /* Service Worker de l'application « Mes cours de 1re » :
    - Pré-cache les fichiers du site pour fonctionner hors-ligne sur téléphone.
    - Stratégie Network-first sur nos fichiers afin de récupérer immédiatement les mises à jour. */
-const CACHE_NAME = 'cours-1re-v4';
+const CACHE_NAME = 'cours-1re-v5';
 const CORE_ASSETS = [
   './',
   './index.html',
+  './styles.css',
   './cours.js',
   './exercices.js',
   './physique-cours.js',
@@ -16,11 +17,19 @@ const CORE_ASSETS = [
   './pwa-192x192.svg',
   './pwa-512x512.svg'
 ];
+const EXTERNAL_ASSETS = [
+  'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS)).catch(() => {})
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await cache.addAll(CORE_ASSETS).catch(() => {});
+      await Promise.allSettled(EXTERNAL_ASSETS.map((u) => cache.add(u)));
+    })
   );
 });
 
