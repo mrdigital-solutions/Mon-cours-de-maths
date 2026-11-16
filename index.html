@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mes cours de 1re — Maths &amp; Physique-Chimie</title>
 <meta name="description" content="Application de révision pour la première générale : spécialité Maths et Physique-Chimie (cours, explications simples, exercices corrigés et mode IA).">
-<meta name="theme-color" content="#2748c8">
+<meta name="theme-color" id="meta-theme" content="#f1f4fa">
+<meta name="color-scheme" id="meta-scheme" content="light">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Cours 1re">
@@ -25,12 +26,11 @@
   --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
   --body: "Atkinson Hyperlegible", Verdana, system-ui, sans-serif;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #10141f; --grid: #1a2030; --surface: #19202f; --ink: #e9edf8; --muted: #9ca7c6; --line: #2e3854;
-    --lesson: #c9a2ff; --lesson-soft: #2a2042; --explain: #8fa6ff; --explain-soft: #1f294a;
-    --practice: #5ed1a3; --practice-soft: #17342b; --on-accent: #0e1220; color-scheme: dark;
-  }
+:root { color-scheme: light; }
+html[data-theme="dark"] {
+  --bg: #10141f; --grid: #1a2030; --surface: #19202f; --ink: #e9edf8; --muted: #9ca7c6; --line: #2e3854;
+  --lesson: #c9a2ff; --lesson-soft: #2a2042; --explain: #8fa6ff; --explain-soft: #1f294a;
+  --practice: #5ed1a3; --practice-soft: #17342b; --on-accent: #0e1220; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -95,22 +95,41 @@ button:focus-visible, summary:focus-visible { outline: 3px solid var(--explain);
 .plein { font: inherit; font-weight: 700; color: var(--on-accent); background: var(--explain); border: 0; border-radius: 999px; padding: 8px 16px; cursor: pointer; }
 .plein.cours { background: var(--lesson); }
 .plein.vert { background: var(--practice); }
-details.reglages { flex: 1 1 100%; margin: 4px 0 0; }
-.reglages .dedans { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 10px; }
-.reglages p { margin: 0; font-size: 0.95rem; }
-.reglages label { font-weight: 700; font-size: 0.95rem; }
-.reglages input, .reglages select {
+.btn-params { font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+.modal-fond {
+  position: fixed; inset: 0; z-index: 100; background: rgba(16, 20, 31, 0.55);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: max(20px, env(safe-area-inset-top)) 14px max(24px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+.modal-carte {
+  width: 100%; max-width: 580px; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22); overflow: hidden; margin: auto 0;
+}
+.modal-tete {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--bg);
+}
+.modal-tete h2 { font-family: var(--display); font-weight: 800; font-size: 1.2rem; margin: 0; }
+.modal-corps { padding: 16px 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.modal-corps p { margin: 0; font-size: 0.94rem; }
+.champ-bloc { display: flex; flex-direction: column; gap: 8px; }
+.champ-bloc h3 { font-family: var(--display); font-weight: 700; font-size: 1.02rem; margin: 0; }
+.modal-corps label { font-weight: 700; font-size: 0.95rem; }
+.modal-corps input, .modal-corps select {
   font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line);
   border-radius: 10px; padding: 9px 12px; width: 100%; max-width: 100%;
 }
-.reglages input:focus-visible, .reglages select:focus-visible { outline: 3px solid var(--explain); outline-offset: 2px; }
-.sous-bloc { border-top: 1px solid var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.modal-corps input:focus-visible, .modal-corps select:focus-visible { outline: 3px solid var(--explain); outline-offset: 2px; }
+.sous-bloc { border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.sous-bloc h3 { font-family: var(--display); font-weight: 700; font-size: 1.02rem; margin: 0; }
 
 .bulles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .bulle {
   font: inherit; text-align: left; cursor: pointer; color: var(--on-accent); border: 0;
   padding: 18px 20px 20px; border-radius: 28px 28px 28px 6px;
-  display: flex; flex-direction: column; gap: 4px; min-width: 0; transition: transform .12s ease;
+  display: flex; flex-direction: column; gap: 4px; min-width: 0; transition: transform .12s ease, box-shadow .12s ease;
 }
 .bulle strong { font-family: var(--display); font-weight: 800; font-size: 1.3rem; line-height: 1.15; }
 .bulle span { font-size: 0.95rem; opacity: 0.92; }
@@ -118,6 +137,10 @@ details.reglages { flex: 1 1 100%; margin: 4px 0 0; }
 .bulle.simple { background: var(--explain); }
 .bulle.exo { background: var(--practice); border-radius: 28px 28px 6px 28px; }
 .bulle:hover { transform: translateY(-2px); }
+.bulle[aria-pressed="true"] {
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--ink), 0 8px 18px rgba(0, 0, 0, 0.14);
+  transform: translateY(-2px);
+}
 @media (max-width: 760px) { .bulles { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .bulle { transition: none; } }
 
@@ -183,7 +206,7 @@ footer { color: var(--muted); font-size: 0.88rem; }
 .pdf-feuille .rendu p { max-width: none; }
 @media print {
   body { background: #ffffff; background-image: none; color: #000000; padding: 0; }
-  header, .feuille, .bulles, footer, .tete button, .tete .ligne { display: none !important; }
+  header, .feuille, .bulles, footer, .tete button, .tete .ligne, .modal-fond { display: none !important; }
   .panneau { border: 0; }
   .panneau .tete { background: #ffffff !important; border-bottom: 2px solid #000000; }
   details { break-inside: avoid; }
@@ -198,8 +221,9 @@ footer { color: var(--muted); font-size: 0.88rem; }
         <h1>Mes cours de 1re</h1>
         <p id="sous-titre-app">Première générale · Spécialité Maths et Physique-Chimie. Choisis un chapitre (ou dépose ton cours), puis clique sur une bulle.</p>
       </div>
-      <div class="pwa-actions" id="pwa-zone">
-        <button type="button" class="btn-install" id="btn-installer">Installer sur le téléphone</button>
+      <div class="pwa-actions">
+        <span id="pwa-zone"><button type="button" class="btn-install" id="btn-installer">Installer sur le téléphone</button></span>
+        <button type="button" class="discret btn-params" id="btn-parametres">⚙️ Paramètres</button>
       </div>
     </div>
     <div class="guide-install" id="guide-install" hidden>
@@ -229,42 +253,6 @@ footer { color: var(--muted); font-size: 0.88rem; }
         <button type="button" class="plein" id="ia-expl">Explique mon cours (IA)</button>
         <button type="button" class="plein vert" id="ia-exo">Exercices sur mon cours (IA)</button>
       </div>
-      <details class="reglages" id="bloc-reglages">
-        <summary>Mode IA &amp; Réglages téléphone (clé API, transfert, mise à jour)</summary>
-        <div class="dedans">
-          <p>Avec une clé Anthropic, l'IA Claude lit vraiment les feuilles déposées dans « Mon cours », remet le cours au propre, l'explique et invente des exercices dessus. Chaque demande est payante, à l'usage, sur le compte Anthropic de la clé. Sans clé, tout le reste de l'application fonctionne gratuitement et hors-ligne.</p>
-          <p>La clé est enregistrée durablement dans ce téléphone / navigateur (<code>localStorage</code> + <code>IndexedDB</code>). Le cours déposé est envoyé à Anthropic uniquement quand tu lances une action IA.</p>
-          <label for="cle">Clé Anthropic</label>
-          <input type="password" id="cle" autocomplete="off" spellcheck="false" placeholder="sk-ant-…">
-          <label for="modele">Modèle</label>
-          <select id="modele">
-            <option value="claude-opus-5-5">Opus 5.5 : le plus fiable (environ 10 à 20 centimes par demande)</option>
-            <option value="claude-sonnet-5-5">Sonnet 5.5 : intermédiaire (environ 5 à 10 centimes)</option>
-            <option value="claude-haiku-5-5">Haiku 5.5 : économique (moins d'un centime)</option>
-          </select>
-          <div class="ligne">
-            <button type="button" class="discret" id="cle-garder">Enregistrer la clé</button>
-            <button type="button" class="discret" id="cle-retirer" hidden>Supprimer la clé</button>
-          </div>
-          <p class="aide" id="cle-etat" style="margin:0"></p>
-          <p class="aide" id="depense" style="margin:0"></p>
-
-          <div class="sous-bloc">
-            <p><strong>Envoyer la clé sur un autre appareil &amp; sauvegarde :</strong></p>
-            <div class="ligne">
-              <button type="button" class="discret" id="lien-tel" hidden>Copier le lien avec ma clé (pour le téléphone)</button>
-              <button type="button" class="discret" id="partager-tel" hidden>Partager vers le téléphone</button>
-              <button type="button" class="discret" id="export-json">Exporter mes réglages (JSON)</button>
-              <button type="button" class="discret" id="import-json">Importer (JSON)</button>
-              <input type="file" id="import-fichier" accept="application/json,.json" hidden>
-            </div>
-            <div class="ligne">
-              <button type="button" class="discret" id="pwa-maj">Forcer la mise à jour de l'application</button>
-            </div>
-            <p class="aide" id="reglages-feedback" role="status" aria-live="polite" style="margin:0"></p>
-          </div>
-        </div>
-      </details>
     </div>
 
     <div class="historique" id="historique-zone" hidden>
@@ -308,6 +296,59 @@ footer { color: var(--muted); font-size: 0.88rem; }
   <footer>Contenu aligné sur les programmes de spécialité mathématiques (rentrée 2026) et physique-chimie de première générale. En cas de différence, le cours de ton professeur fait foi.</footer>
 </div>
 
+<div class="modal-fond" id="modal-parametres" hidden role="dialog" aria-modal="true" aria-labelledby="titre-parametres">
+  <div class="modal-carte">
+    <div class="modal-tete">
+      <h2 id="titre-parametres">⚙️ Paramètres</h2>
+      <button type="button" class="discret" id="fermer-parametres" aria-label="Fermer les paramètres">Fermer</button>
+    </div>
+    <div class="modal-corps">
+      <div class="champ-bloc">
+        <h3>Apparence</h3>
+        <label for="theme-select">Fond de l'application</label>
+        <select id="theme-select">
+          <option value="light">Clair (cahier blanc — par défaut)</option>
+          <option value="dark">Sombre (fond nuit)</option>
+        </select>
+        <p class="aide" style="margin:0">Le fond clair reste activé par défaut sur ordinateur et sur téléphone.</p>
+      </div>
+
+      <div class="sous-bloc">
+        <h3>Mode IA (clé Anthropic)</h3>
+        <p>Avec une clé Anthropic, l'IA Claude lit vraiment les feuilles déposées dans « Mon cours », remet le cours au propre, l'explique et invente des exercices dessus. Chaque demande est payante, à l'usage, sur le compte Anthropic de la clé. Sans clé, tout le reste de l'application fonctionne gratuitement et hors-ligne.</p>
+        <p>La clé est enregistrée durablement dans ce téléphone / navigateur (<code>localStorage</code> + <code>IndexedDB</code>). Le cours déposé est envoyé à Anthropic uniquement quand tu lances une action IA.</p>
+        <label for="cle">Clé Anthropic</label>
+        <input type="password" id="cle" autocomplete="off" spellcheck="false" placeholder="sk-ant-…">
+        <label for="modele">Modèle</label>
+        <select id="modele">
+          <option value="claude-opus-5-5">Opus 5.5 : le plus fiable (environ 10 à 20 centimes par demande)</option>
+          <option value="claude-sonnet-5-5">Sonnet 5.5 : intermédiaire (environ 5 à 10 centimes)</option>
+          <option value="claude-haiku-5-5">Haiku 5.5 : économique (moins d'un centime)</option>
+        </select>
+        <div class="ligne">
+          <button type="button" class="discret" id="cle-garder">Enregistrer la clé</button>
+          <button type="button" class="discret" id="cle-retirer" hidden>Supprimer la clé</button>
+        </div>
+        <p class="aide" id="cle-etat" style="margin:0"></p>
+        <p class="aide" id="depense" style="margin:0"></p>
+        <div class="ligne">
+          <button type="button" class="discret" id="lien-tel" hidden>Copier le lien avec ma clé (pour le téléphone)</button>
+          <button type="button" class="discret" id="partager-tel" hidden>Partager vers le téléphone</button>
+        </div>
+      </div>
+
+      <div class="sous-bloc">
+        <h3>Application téléphone</h3>
+        <div class="ligne">
+          <button type="button" class="discret" id="pwa-maj">Forcer la mise à jour de l'application</button>
+        </div>
+        <p class="aide" style="margin:0">• <strong>iPhone / iPad (Safari) :</strong> Partager → « Sur l'écran d'accueil ».<br>• <strong>Android (Chrome) :</strong> Menu ⋮ → « Installer l'application ».</p>
+        <p class="aide" id="reglages-feedback" role="status" aria-live="polite" style="margin:0"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 window.MathJax = {
   tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] },
@@ -325,6 +366,38 @@ window.MathJax = {
 (() => {
   const $ = (id) => document.getElementById(id);
   const sortie = $('sortie'), panneau = $('panneau');
+
+  /* ---------- Thème (clair par défaut, même si le téléphone est en mode sombre) ---------- */
+  function appliquerTheme(t) {
+    const sombre = t === 'dark';
+    if (sombre) document.documentElement.dataset.theme = 'dark';
+    else delete document.documentElement.dataset.theme;
+    const metaTheme = $('meta-theme');
+    if (metaTheme) metaTheme.content = sombre ? '#10141f' : '#f1f4fa';
+    const metaScheme = $('meta-scheme');
+    if (metaScheme) metaScheme.content = sombre ? 'dark' : 'light';
+    const sel = $('theme-select');
+    if (sel) sel.value = sombre ? 'dark' : 'light';
+    try { localStorage.setItem('maths-theme', sombre ? 'dark' : 'light'); } catch (e) {}
+  }
+  appliquerTheme((() => { try { return localStorage.getItem('maths-theme') || 'light'; } catch (e) { return 'light'; } })());
+  if ($('theme-select')) $('theme-select').onchange = () => appliquerTheme($('theme-select').value);
+
+  /* ---------- Fenêtre Paramètres ---------- */
+  const modalParams = $('modal-parametres');
+  const ouvrirParametres = () => {
+    if ($('reglages-feedback')) $('reglages-feedback').textContent = '';
+    modalParams.hidden = false;
+    $('fermer-parametres').focus();
+  };
+  const fermerParametres = () => {
+    modalParams.hidden = true;
+    $('btn-parametres').focus();
+  };
+  $('btn-parametres').onclick = ouvrirParametres;
+  $('fermer-parametres').onclick = fermerParametres;
+  modalParams.addEventListener('click', (e) => { if (e.target === modalParams) fermerParametres(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modalParams.hidden) fermerParametres(); });
 
   /* ---------- PWA : Service Worker & installation téléphone ---------- */
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
@@ -705,8 +778,8 @@ window.MathJax = {
       dire('Chapitre reconnu : ' + titre + '. ' + combien + total + ' Clique sur une bulle pour l\'explication ou les exercices.');
     } else {
       chapitre = 'mon-cours'; ecrire(cleChapitre(cibleMatiere), 'mon-cours');
-      if (nouvelles.every((f) => f.type.startsWith('image/'))) dire(combien + total + ' Sans clé IA, le site ne peut pas lire une photo tout seul : choisis le chapitre correspondant ci-dessus, ou active le Mode IA.');
-      else dire(combien + total + ' Chapitre non reconnu automatiquement : choisis un chapitre ci-dessus pour voir sa fiche, ou active le Mode IA.');
+      if (nouvelles.every((f) => f.type.startsWith('image/'))) dire(combien + total + ' Sans clé IA, le site ne peut pas lire une photo tout seul : choisis le chapitre correspondant ci-dessus, ou active le Mode IA dans ⚙️ Paramètres.');
+      else dire(combien + total + ' Chapitre non reconnu automatiquement : choisis un chapitre ci-dessus pour voir sa fiche, ou active le Mode IA dans ⚙️ Paramètres.');
     }
     genre = 'simple';
     ecrire('maths-genre', genre);
@@ -831,51 +904,6 @@ window.MathJax = {
         url: construireLienCle()
       });
     } catch (e) {}
-  };
-  $('export-json').onclick = async () => {
-    const data = {
-      version: 2,
-      app: 'cours-1re',
-      exportedAt: new Date().toISOString(),
-      cle: cle(),
-      modele: modele(),
-      depense: Number(lire('maths-depense', '0')) || 0,
-      historique: await lireHistorique()
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'cours-1re-reglages.json'; a.click();
-    URL.revokeObjectURL(url);
-    direReglages('Réglages et historique exportés.');
-  };
-  $('import-json').onclick = () => $('import-fichier').click();
-  $('import-fichier').onchange = async (e) => {
-    const f = e.target.files[0]; e.target.value = '';
-    if (!f) return;
-    try {
-      const data = JSON.parse(await f.text());
-      if (typeof data.cle === 'string' && data.cle.trim()) ecrire('maths-cle', data.cle.trim());
-      if (data.modele && TARIFS[data.modele]) ecrire('maths-modele', data.modele);
-      if (typeof data.depense === 'number') ecrire('maths-depense', String(data.depense));
-      if (Array.isArray(data.historique)) {
-        const exist = await lireHistorique();
-        for (const item of data.historique) {
-          if (item && item.texte && !exist.some((x) => x.id === item.id || (x.texte === item.texte && x.type === item.type && x.matiere === item.matiere))) {
-            exist.push({ ...item, matiere: item.matiere === 'pc' ? 'pc' : 'maths' });
-          }
-        }
-        exist.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-        await sauverHistorique(exist);
-        await majHistorique();
-      }
-      await sauverParamsIA();
-      majIA(); majFichier();
-      direReglages('Réglages, clé et historique importés avec succès.');
-      if (chapitre === 'mon-cours') afficher();
-    } catch (err) {
-      direReglages('Erreur : fichier JSON invalide.');
-    }
   };
   $('pwa-maj').onclick = async () => {
     direReglages('Mise à jour de l\'application en cours…');
@@ -1173,6 +1201,7 @@ window.MathJax = {
     chapitre = 'mon-cours'; ecrire(cleChapitre(matiere), 'mon-cours');
     genre = item.type || 'simple'; ecrire('maths-genre', genre);
     zone.querySelectorAll('.chap').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === 'mon-cours')));
+    majBulles(genre);
     majFichier();
     const feuilles = await lireFeuilles(matiere);
     afficherReponseIA(genre, item.texte, item.sujet, item.cout, item.coupe, item.date, Boolean(feuilles.length && cle()), matiere);
@@ -1186,9 +1215,14 @@ window.MathJax = {
   }
   $('stop-ia').onclick = arreterIA;
 
+  const majBulles = (active = genre) => {
+    document.querySelectorAll('.bulle').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.genre === active)));
+  };
+
   function afficherReponseIA(type, corps, sujet, cout, coupe, date, peutRegenerer, matCible = matiere) {
     const titre = TITRES_IA[type] + ' · ' + (sujet || 'Mon cours');
     panneau.className = 'panneau ' + type;
+    majBulles(type);
     $('outils-exo').hidden = !(type === 'exo' && peutRegenerer);
     $('titre-panneau').textContent = titre;
     documentActuel = { titre, type, texte: corps, matiere: matCible, date };
@@ -1234,6 +1268,7 @@ window.MathJax = {
     chapitre = 'mon-cours'; ecrire(cleChapitre(mat), 'mon-cours');
     genre = type; ecrire('maths-genre', genre);
     zone.querySelectorAll('.chap').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === 'mon-cours')));
+    majBulles(type);
     majFichier();
 
     const m = modele(), emp = empreinteFeuilles(feuilles);
@@ -1344,8 +1379,8 @@ window.MathJax = {
       etat.textContent =
         e && e.message === 'trop-lourd' ? 'Ces feuilles sont trop lourdes ensemble (plus de 20 Mo). Retires-en quelques-unes ou dépose des fichiers plus légers.' :
         est(A.APIUserAbortError) ? 'Arrêté.' :
-        est(A.AuthenticationError) ? 'La clé Anthropic est refusée. Vérifie-la dans « Mode IA ».' :
-        est(A.PermissionDeniedError) ? 'Cette clé n\'a pas le droit d\'utiliser ce modèle. Essaie un autre modèle dans « Mode IA ».' :
+        est(A.AuthenticationError) ? 'La clé Anthropic est refusée. Vérifie-la dans « ⚙️ Paramètres ».' :
+        est(A.PermissionDeniedError) ? 'Cette clé n\'a pas le droit d\'utiliser ce modèle. Essaie un autre modèle dans « ⚙️ Paramètres ».' :
         est(A.RateLimitError) ? 'Trop de demandes pour l\'instant. Réessaie dans une minute.' :
         est(A.BadRequestError) && /credit|billing/i.test(e.message || '') ? 'Le compte Anthropic n\'a plus de crédit. Il faut en ajouter sur le compte de la clé.' :
         est(A.BadRequestError) ? 'Claude n\'a pas pu lire ce fichier (' + (e.message || 'demande refusée') + ').' :
@@ -1364,6 +1399,7 @@ window.MathJax = {
     const monAff = ++jetonAffichage;
     const mat = matiere;
     zone.querySelectorAll('.chap').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === chapitre)));
+    majBulles(genre);
     arreterIA();
     majFichier();
 
@@ -1457,7 +1493,13 @@ window.MathJax = {
       btn.onclick = () => lancerIA(monGenre);
       sortie.append(p, btn);
     } else {
-      sortie.append(bloc('Tes **' + feuilles.length + (feuilles.length > 1 ? ' feuilles** sont bien rangées' : ' feuille** est bien rangée') + ' dans **Mon cours (' + nomMat + ')**.\n\n- Pour réviser gratuitement tout de suite, choisis le chapitre correspondant dans la liste juste au-dessus.\n- Pour que Claude lise directement tes feuilles, ouvre **« Mode IA & Réglages téléphone »** et enregistre une clé Anthropic.'));
+      sortie.append(bloc('Tes **' + feuilles.length + (feuilles.length > 1 ? ' feuilles** sont bien rangées' : ' feuille** est bien rangée') + ' dans **Mon cours (' + nomMat + ')**.\n\n- Pour réviser gratuitement tout de suite, choisis le chapitre correspondant dans la liste juste au-dessus.\n- Pour que Claude lise directement tes feuilles, ouvre **⚙️ Paramètres** (en haut) et enregistre une clé Anthropic.'));
+      const btnParams = document.createElement('button');
+      btnParams.type = 'button';
+      btnParams.className = 'discret';
+      btnParams.textContent = '⚙️ Ouvrir les paramètres (Mode IA)';
+      btnParams.onclick = ouvrirParametres;
+      sortie.append(btnParams);
     }
   }
 
@@ -1473,7 +1515,6 @@ window.MathJax = {
       await sauverParamsIA();
       dire('Clé IA enregistrée automatiquement sur cet appareil ! Dépose tes feuilles ci-dessus ou installe l\'application.');
       direReglages('Clé API enregistrée automatiquement sur cet appareil !');
-      $('bloc-reglages').open = false;
     }
     if (await migrerFeuilles()) {
       matiere = 'maths';

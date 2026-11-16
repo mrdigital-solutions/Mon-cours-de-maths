@@ -2,7 +2,7 @@
   "name": "Mes cours de 1re — Maths & Physique-Chimie",
   "short_name": "Cours 1re",
   "description": "Cours, explications simples et exercices corrigés de spécialité Maths et Physique-Chimie (Première générale).",
-  "theme_color": "#2748c8",
+  "theme_color": "#f1f4fa",
   "background_color": "#f1f4fa",
   "display": "standalone",
   "orientation": "portrait",
