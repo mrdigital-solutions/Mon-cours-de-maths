@@ -52,10 +52,6 @@
         📄 Ajouter des feuilles (PDF, photos ou texte)
         <input type="file" id="depot" multiple accept=".pdf,.txt,application/pdf,text/plain,image/*" aria-label="Déposer les feuilles de mon cours">
       </span>
-      <span class="discret fichier">
-        📷 Prendre une photo
-        <input type="file" id="depot-photo" accept="image/*" capture="environment" aria-label="Prendre en photo mon cours">
-      </span>
       <button type="button" class="discret petit" id="vider-feuilles" hidden>Tout retirer</button>
       <ul id="fichiers" class="fichiers" hidden></ul>
       <p class="aide" id="message-cours" role="status" aria-live="polite">Dépose les feuilles de ton cours (PDF, photos ou texte) : elles restent sur ton appareil, dans « Mon cours ».</p>
@@ -300,6 +296,13 @@ window.MathJax = {
   const LISTE_COURS = { maths: window.COURS || [], pc: window.COURS_PC || [] };
   const LISTE_EXOS = { maths: window.EXERCICES || {}, pc: window.EXERCICES_PC || {} };
   const cleChapitre = (m) => (m === 'pc' ? 'pc-chapitre' : 'maths-chapitre');
+  const cleChapMonCours = (m = matiere) => (m === 'pc' ? 'pc-moncours-chap' : 'maths-moncours-chap');
+  const lireChapMonCours = (m = matiere) => {
+    const liste = LISTE_COURS[m] || [];
+    const sauve = lire(cleChapMonCours(m), '');
+    return liste.some((c) => c.id === sauve) ? sauve : (liste[0] ? liste[0].id : '');
+  };
+  const ecrireChapMonCours = (id, m = matiere) => ecrire(cleChapMonCours(m), id);
   const coursActuels = () => LISTE_COURS[matiere] || [];
   const exosActuels = () => LISTE_EXOS[matiere] || {};
 
@@ -636,7 +639,65 @@ window.MathJax = {
     }
     return pdfPret;
   }
-  async function texteDuFichier(f) {
+  const TESSERACT_JS = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+  let ocrPret = null;
+  function loadTesseract() {
+    if (!ocrPret) {
+      ocrPret = charger(TESSERACT_JS).then(() => {
+        if (!window.Tesseract) throw new Error('tesseract');
+        return window.Tesseract;
+      });
+      ocrPret.catch(() => { ocrPret = null; });
+    }
+    return ocrPret;
+  }
+  async function ocrImage(src) {
+    try {
+      const T = await Promise.race([loadTesseract(), new Promise((r) => setTimeout(() => r(null), 5000))]);
+      if (!T) return '';
+      const res = await Promise.race([
+        T.recognize(src, 'fra'),
+        new Promise((r) => setTimeout(() => r(null), 12000))
+      ]);
+      return res && res.data && res.data.text ? res.data.text : '';
+    } catch (e) { return ''; }
+  }
+  const ocrFaits = new Set();
+  async function detecterChapitreDepuisFeuilles(feuilles, mat) {
+    if (!feuilles.length || cle()) return;
+    const emp = empreinteFeuilles(feuilles);
+    const cleAuto = cleChapMonCours(mat) + '-auto:' + emp;
+    if (ocrFaits.has(cleAuto) || lire(cleChapMonCours(mat) + '-manuel:' + emp, '') || lire(cleAuto, '')) return;
+    ocrFaits.add(cleAuto);
+    ecrire(cleAuto, '1');
+    const texteExist = feuilles.map((f) => f.texte || '').join(' ').trim();
+    if (texteExist) {
+      const trouve = window.reconnaitreChapitre(texteExist, mat);
+      if (trouve) {
+        const cibleMat = window.matiereDuChapitre ? window.matiereDuChapitre(trouve) : mat;
+        ecrireChapMonCours(trouve, cibleMat);
+        if (matiere === mat && chapitre === 'mon-cours') afficher();
+      }
+      return;
+    }
+    const premiereImg = feuilles.find((f) => (f.type || '').startsWith('image/') && f.dataUrl);
+    if (!premiereImg) return;
+    const extrait = await ocrImage(premiereImg.dataUrl);
+    if (!extrait) return;
+    const maj = (await lireFeuilles(mat)).map((x) => (x.name === premiereImg.name && x.lastModified === premiereImg.lastModified ? { ...x, texte: extrait } : x));
+    await garderFeuilles(maj, mat);
+    const trouve = window.reconnaitreChapitre(extrait, mat);
+    if (trouve && !lire(cleChapMonCours(mat) + '-manuel:' + emp, '')) {
+      const cibleMat = window.matiereDuChapitre ? window.matiereDuChapitre(trouve) : mat;
+      ecrireChapMonCours(trouve, cibleMat);
+      const titre = (LISTE_COURS[cibleMat] || []).find((c) => c.id === trouve)?.titre || '';
+      if (matiere === mat && chapitre === 'mon-cours') {
+        if (titre) dire('Chapitre reconnu sur ta photo : ' + titre + '. Tu peux le modifier ci-dessous.');
+        afficher();
+      }
+    }
+  }
+  async function texteDuFichier(f, tenterOcr) {
     if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) {
       const doc = await (await pdfjs()).getDocument({ data: await f.arrayBuffer() }).promise;
       let t = '';
@@ -646,6 +707,7 @@ window.MathJax = {
       return t;
     }
     if (f.type.startsWith('text/') || /\.txt$/i.test(f.name)) return f.text();
+    if (tenterOcr && (f.type || '').startsWith('image/')) return ocrImage(f);
     return '';
   }
   async function ajouterFichiersAuCours(brutes) {
@@ -655,7 +717,7 @@ window.MathJax = {
     const nouvelles = [];
     for (const f of brutes) {
       let t = '';
-      try { t = await texteDuFichier(f); texte += ' ' + t; } catch (err) {}
+      try { t = await texteDuFichier(f, !cle() && !texte.trim()); texte += ' ' + t; } catch (err) {}
       nouvelles.push(await preparerFeuille(f, t));
     }
     const trouve = !cle() ? window.reconnaitreChapitre(texte, matiere) : null;
@@ -674,17 +736,17 @@ window.MathJax = {
     const nomMat = cibleMatiere === 'pc' ? 'Physique-Chimie' : 'Maths';
     const combien = nouvelles.length > 1 ? nouvelles.length + ' feuilles ajoutées' : 'Feuille ajoutée';
     const total = ' (' + feuilles.length + ' au total dans « Mon cours » · ' + nomMat + ').';
+    chapitre = 'mon-cours'; ecrire(cleChapitre(cibleMatiere), 'mon-cours');
     if (cle()) {
-      chapitre = 'mon-cours'; ecrire(cleChapitre(cibleMatiere), 'mon-cours');
       dire(combien + total + ' Clique sur une bulle ci-dessous.');
     } else if (trouve) {
-      chapitre = trouve; ecrire(cleChapitre(cibleMatiere), trouve);
+      ecrireChapMonCours(trouve, cibleMatiere);
+      ecrire(cleChapMonCours(cibleMatiere) + '-auto:' + empreinteFeuilles(feuilles), '1');
       const titre = coursActuels().find((c) => c.id === trouve).titre;
-      dire('Chapitre reconnu : ' + titre + '. ' + combien + total + ' Clique sur une bulle pour l\'explication ou les exercices.');
+      dire('Chapitre reconnu : ' + titre + '. ' + combien + total + ' Clique sur Le cours, Explique-moi simplement ou Des exercices.');
     } else {
-      chapitre = 'mon-cours'; ecrire(cleChapitre(cibleMatiere), 'mon-cours');
-      if (nouvelles.every((f) => f.type.startsWith('image/'))) dire(combien + total + ' Sans clé IA, le site ne peut pas lire une photo tout seul : choisis le chapitre correspondant ci-dessus, ou active le Mode IA dans ⚙️ Paramètres.');
-      else dire(combien + total + ' Chapitre non reconnu automatiquement : choisis un chapitre ci-dessus pour voir sa fiche, ou active le Mode IA dans ⚙️ Paramètres.');
+      if (!cle()) ecrire(cleChapMonCours(cibleMatiere) + '-auto:' + empreinteFeuilles(feuilles), '1');
+      dire(combien + total + ' Choisis le chapitre de tes feuilles ci-dessous (ou active le Mode IA dans ⚙️ Paramètres).');
     }
     genre = 'simple';
     ecrire('maths-genre', genre);
@@ -696,26 +758,26 @@ window.MathJax = {
     ajouterFichiersAuCours(brutes);
   };
   $('depot').addEventListener('change', gererSelectionFichiers);
-  $('depot-photo').addEventListener('change', gererSelectionFichiers);
 
   const NIVEAUX = ['pour démarrer', 'niveau contrôle', 'pour aller plus loin'];
-  function exercices(niveau) {
-    const modeles = exosActuels()[chapitre];
-    sortie.textContent = '';
+  function exercices(niveau, idChapitre = chapitre, cible = sortie) {
+    const modeles = exosActuels()[idChapitre];
+    if (!modeles) return;
+    cible.textContent = '';
     if (niveau === 'flash') {
       const idx = Math.floor(Math.random() * modeles.length);
-      sortie.append(carte(1, modeles[idx](), 'question flash (5 min)'));
+      cible.append(carte(1, modeles[idx](), 'question flash (5 min)'));
       const bFlash = document.createElement('button');
       bFlash.type = 'button';
       bFlash.className = 'discret flash-relance';
       bFlash.textContent = '⚡ Autre question flash';
       bFlash.onclick = () => afficher('flash');
-      sortie.append(bFlash);
+      cible.append(bFlash);
     } else {
       const choix = niveau === 'mix' ? [0, 1, 2] : [Number(niveau), Number(niveau), Number(niveau)];
-      choix.forEach((n, i) => sortie.append(carte(i + 1, modeles[n](), NIVEAUX[n])));
+      choix.forEach((n, i) => cible.append(carte(i + 1, modeles[n](), NIVEAUX[n])));
     }
-    typographier(sortie);
+    typographier(cible);
   }
   function carte(numero, e, etiquette) {
     const art = document.createElement('article'); art.className = 'exercice';
@@ -1017,7 +1079,7 @@ window.MathJax = {
         conteneur.append(zonePdf);
       } else if (doc.clonerDepuisSortie) {
         const clone = sortie.cloneNode(true);
-        clone.querySelectorAll('.aide, .plein').forEach((n) => n.remove());
+        clone.querySelectorAll('.aide, .plein, .barre-moncours-gratuit').forEach((n) => n.remove());
         conteneur.append(clone);
       }
       conteneur.querySelectorAll('.verif-brouillon, .flash-relance').forEach((n) => n.remove());
@@ -1496,24 +1558,26 @@ window.MathJax = {
       return;
     }
 
-    if (histMatch) {
-      afficherReponseIA(monGenre, histMatch.texte, histMatch.sujet, histMatch.cout, histMatch.coupe, histMatch.date, peutRegen, mat);
-      return;
-    }
-
-    if (!depuisBulle) {
-      const autreCacheType = cacheValide && cacheValide.reponses && ['simple', 'exo', 'cours'].find((t) => cacheValide.reponses[t]);
-      if (autreCacheType) {
-        const r = cacheValide.reponses[autreCacheType];
-        genre = autreCacheType; ecrire('maths-genre', genre);
-        afficherReponseIA(genre, r.texte, cacheValide.sujet, r.cout, r.coupe, null, peutRegen, mat);
+    if (!(feuilles.length && !cle())) {
+      if (histMatch) {
+        afficherReponseIA(monGenre, histMatch.texte, histMatch.sujet, histMatch.cout, histMatch.coupe, histMatch.date, peutRegen, mat);
         return;
       }
-      const autreHist = hist.find((h) => h.matiere === mat);
-      if (autreHist) {
-        genre = autreHist.type || 'simple'; ecrire('maths-genre', genre);
-        afficherReponseIA(genre, autreHist.texte, autreHist.sujet, autreHist.cout, autreHist.coupe, autreHist.date, peutRegen, mat);
-        return;
+
+      if (!depuisBulle) {
+        const autreCacheType = cacheValide && cacheValide.reponses && ['simple', 'exo', 'cours'].find((t) => cacheValide.reponses[t]);
+        if (autreCacheType) {
+          const r = cacheValide.reponses[autreCacheType];
+          genre = autreCacheType; ecrire('maths-genre', genre);
+          afficherReponseIA(genre, r.texte, cacheValide.sujet, r.cout, r.coupe, null, peutRegen, mat);
+          return;
+        }
+        const autreHist = hist.find((h) => h.matiere === mat);
+        if (autreHist) {
+          genre = autreHist.type || 'simple'; ecrire('maths-genre', genre);
+          afficherReponseIA(genre, autreHist.texte, autreHist.sujet, autreHist.cout, autreHist.coupe, autreHist.date, peutRegen, mat);
+          return;
+        }
       }
     }
 
@@ -1533,9 +1597,9 @@ window.MathJax = {
       return;
     }
 
-    $('titre-panneau').textContent = (cle() ? TITRES_IA[monGenre] : TITRES_GENRE[monGenre]) + ' · ' + ((cacheValide && cacheValide.sujet) || 'Mon cours (' + nomMat + ')');
-    sortie.textContent = '';
     if (cle()) {
+      $('titre-panneau').textContent = TITRES_IA[monGenre] + ' · ' + ((cacheValide && cacheValide.sujet) || 'Mon cours (' + nomMat + ')');
+      sortie.textContent = '';
       const p = document.createElement('p');
       p.className = 'aide';
       p.textContent = feuilles.length + (feuilles.length > 1 ? ' feuilles déposées' : ' feuille déposée') + ' (' + nomMat + '). Prêt à générer cette partie à partir de ton cours.';
@@ -1545,15 +1609,91 @@ window.MathJax = {
       btn.textContent = monGenre === 'cours' ? 'Générer mon cours au propre (IA)' : monGenre === 'simple' ? 'Expliquer mon cours (IA)' : 'Générer 3 exercices sur mon cours (IA)';
       btn.onclick = () => lancerIA(monGenre);
       sortie.append(p, btn);
-    } else {
-      sortie.append(bloc('Tes **' + feuilles.length + (feuilles.length > 1 ? ' feuilles** sont bien rangées' : ' feuille** est bien rangée') + ' dans **Mon cours (' + nomMat + ')**.\n\n- Pour réviser gratuitement tout de suite, choisis le chapitre correspondant dans la liste juste au-dessus.\n- Pour que Claude lise directement tes feuilles, ouvre **⚙️ Paramètres** (en haut) et enregistre une clé Anthropic.'));
-      const btnParams = document.createElement('button');
-      btnParams.type = 'button';
-      btnParams.className = 'discret';
-      btnParams.textContent = '⚙️ Ouvrir les paramètres (Mode IA)';
-      btnParams.onclick = ouvrirParametres;
-      sortie.append(btnParams);
+      return;
     }
+
+    /* Mode gratuit avec feuilles déposées : aperçu direct des feuilles + sélecteur de chapitre pour les 3 bulles */
+    const idAssoc = lireChapMonCours(mat);
+    const chapAssoc = coursActuels().find((x) => x.id === idAssoc) || coursActuels()[0];
+    const titreGratuit = TITRES_GENRE[monGenre] + ' · Mon cours · ' + chapAssoc.titre;
+    $('titre-panneau').textContent = titreGratuit;
+    sortie.textContent = '';
+
+    const barre = document.createElement('div');
+    barre.className = 'barre-moncours-gratuit';
+    const lbl = document.createElement('label');
+    lbl.setAttribute('for', 'chap-moncours-select');
+    lbl.textContent = 'Chapitre de tes feuilles :';
+    const sel = document.createElement('select');
+    sel.id = 'chap-moncours-select';
+    coursActuels().forEach((ch) => {
+      const opt = document.createElement('option');
+      opt.value = ch.id;
+      opt.textContent = ch.titre;
+      sel.append(opt);
+    });
+    sel.value = chapAssoc.id;
+    sel.onchange = () => {
+      ecrireChapMonCours(sel.value, mat);
+      ecrire(cleChapMonCours(mat) + '-manuel:' + emp, '1');
+      afficher(monGenre === 'exo' ? niveau : null);
+    };
+    const btnIa = document.createElement('button');
+    btnIa.type = 'button';
+    btnIa.className = 'discret petit';
+    btnIa.textContent = '⚙️ Activer l\'IA sur mes feuilles';
+    btnIa.onclick = ouvrirParametres;
+    barre.append(lbl, sel, btnIa);
+
+    const contenuGratuit = document.createElement('div');
+    sortie.append(barre, contenuGratuit);
+
+    documentActuel = { titre: titreGratuit, type: monGenre, matiere: mat, clonerDepuisSortie: true };
+    $('btn-pdf').hidden = false;
+    $('outils-exo').hidden = monGenre !== 'exo';
+
+    if (monGenre === 'exo') {
+      exercices(niveau || 'mix', chapAssoc.id, contenuGratuit);
+    } else if (monGenre === 'simple') {
+      contenuGratuit.append(bloc(chapAssoc.simple));
+      typographier(contenuGratuit);
+    } else {
+      const blocFeuilles = document.createElement('div');
+      const hFeuilles = document.createElement('h3');
+      hFeuilles.style.marginTop = '8px';
+      hFeuilles.textContent = feuilles.length > 1 ? 'Tes ' + feuilles.length + ' feuilles déposées' : 'Ta feuille déposée';
+      const grille = document.createElement('div');
+      grille.className = 'apercu-feuilles-grille';
+      feuilles.forEach((f, idx) => {
+        const fig = document.createElement('figure');
+        fig.className = 'apercu-feuille-carte';
+        if ((f.type || '').startsWith('image/') && f.dataUrl) {
+          const img = document.createElement('img');
+          img.className = 'apercu-feuille';
+          img.src = f.dataUrl;
+          img.alt = f.name || ('Feuille ' + (idx + 1));
+          fig.append(img);
+        } else if (f.texte) {
+          const ext = document.createElement('p');
+          ext.className = 'aide';
+          ext.style.margin = '0';
+          ext.textContent = f.texte.slice(0, 180).trim() + (f.texte.length > 180 ? '…' : '');
+          fig.append(ext);
+        }
+        const cap = document.createElement('figcaption');
+        cap.textContent = 'Feuille ' + (idx + 1) + ' : ' + (f.name || 'document');
+        fig.append(cap);
+        grille.append(fig);
+      });
+      const blocFiche = bloc(chapAssoc.cours);
+      const hFiche = document.createElement('h3');
+      hFiche.textContent = 'Fiche de cours associée · ' + chapAssoc.titre;
+      blocFeuilles.append(hFeuilles, grille);
+      contenuGratuit.append(blocFeuilles, hFiche, blocFiche);
+      typographier(contenuGratuit);
+    }
+
+    detecterChapitreDepuisFeuilles(feuilles, mat);
   }
 
   document.querySelectorAll('.bulle').forEach((b) => {
