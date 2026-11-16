@@ -50,6 +50,13 @@ header p { margin: 0; color: var(--muted); max-width: 58ch; }
 .chap[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); font-weight: 700; }
 button:focus-visible, summary:focus-visible { outline: 3px solid var(--explain); outline-offset: 2px; }
 .aide { color: var(--muted); font-size: 0.92rem; margin: 12px 0 0; }
+.moncours { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.moncours h2 { margin: 0; flex: 1 1 100%; }
+.fichier { position: relative; display: inline-flex; }
+.fichier input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.fichier:focus-within { outline: 3px solid var(--explain); outline-offset: 2px; }
+.moncours a { color: var(--explain); font-weight: 700; overflow-wrap: anywhere; }
+#message-cours { flex: 1 1 100%; margin: 0; }
 
 .bulles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .bulle {
@@ -107,6 +114,18 @@ footer { color: var(--muted); font-size: 0.88rem; }
   <section class="feuille">
     <h2>Choisis ton chapitre</h2>
     <div class="chapitres" id="chapitres"></div>
+    <div class="moncours">
+      <h2>Ou dépose ton cours</h2>
+      <span class="discret fichier">
+        Choisir un fichier (PDF, photo ou texte)
+        <input type="file" id="depot" accept=".pdf,.txt,application/pdf,text/plain,image/*" aria-label="Déposer mon cours">
+      </span>
+      <span id="fichier-info" hidden>
+        <a id="fichier-lien" target="_blank" rel="noopener"></a>
+        <button type="button" class="discret" id="fichier-retirer">Retirer</button>
+      </span>
+      <p class="aide" id="message-cours" role="status" aria-live="polite">Le site reconnaît le chapitre de ton cours, puis te propose l'explication et les exercices qui vont avec. Ton fichier reste sur ton appareil.</p>
+    </div>
   </section>
 
   <div class="bulles">
@@ -149,6 +168,7 @@ window.MathJax = {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.min.js" async></script>
 <script src="cours.js"></script>
 <script src="exercices.js"></script>
+<script src="reconnaitre.js"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -203,6 +223,75 @@ window.MathJax = {
     zone.append(b);
   });
 
+  /* ---------- Cours déposé par l'élève : gardé sur son appareil, rangé par chapitre ---------- */
+  const memoire = {};
+  const base = () => new Promise((ok, ko) => {
+    const r = indexedDB.open('mon-cours-de-maths', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('fichiers');
+    r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error);
+  });
+  const acces = async (mode, action) => {
+    const db = await base();
+    return new Promise((ok, ko) => {
+      const t = db.transaction('fichiers', mode), q = action(t.objectStore('fichiers'));
+      t.oncomplete = () => ok(q.result); t.onerror = () => ko(t.error);
+    });
+  };
+  const lireFichier = async (id) => { try { return await acces('readonly', (s) => s.get(id)); } catch (e) { return memoire[id]; } };
+  const garderFichier = async (id, f) => { memoire[id] = f; try { await acces('readwrite', (s) => s.put(f, id)); } catch (e) {} };
+  const oublierFichier = async (id) => { delete memoire[id]; try { await acces('readwrite', (s) => s.delete(id)); } catch (e) {} };
+  const dire = (texte) => { $('message-cours').textContent = texte; };
+
+  let adresse = null;
+  async function majFichier() {
+    const id = chapitre, f = await lireFichier(id);
+    if (id !== chapitre) return;
+    if (adresse) { URL.revokeObjectURL(adresse); adresse = null; }
+    $('fichier-info').hidden = !f;
+    if (f) { adresse = URL.createObjectURL(f); $('fichier-lien').href = adresse; $('fichier-lien').textContent = 'Ouvrir ton cours : ' + f.name; }
+  }
+  $('fichier-retirer').onclick = async () => { await oublierFichier(chapitre); dire('Cours retiré de ce chapitre.'); majFichier(); };
+
+  const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+  let pdfPret = null;
+  const charger = (src) => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.append(s); });
+  function pdfjs() {
+    if (!pdfPret) {
+      pdfPret = charger(PDFJS + 'pdf.min.js').then(() => charger(PDFJS + 'pdf.worker.min.js'))
+        .then(() => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js'; return window.pdfjsLib; });
+      pdfPret.catch(() => { pdfPret = null; });
+    }
+    return pdfPret;
+  }
+  async function texteDuFichier(f) {
+    if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) {
+      const doc = await (await pdfjs()).getDocument({ data: await f.arrayBuffer() }).promise;
+      let t = '';
+      for (let n = 1; n <= Math.min(doc.numPages, 40); n++) {
+        t += (await (await doc.getPage(n)).getTextContent()).items.map((it) => it.str).join(' ') + '\n';
+      }
+      return t;
+    }
+    if (f.type.startsWith('text/') || /\.txt$/i.test(f.name)) return f.text();
+    return '';
+  }
+  $('depot').addEventListener('change', async (e) => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    dire('Lecture de ton cours…');
+    let texte = '';
+    try { texte = await texteDuFichier(f); } catch (err) { texte = ''; }
+    const trouve = window.reconnaitreChapitre(texte);
+    if (trouve) { chapitre = trouve; ecrire('maths-chapitre', trouve); }
+    await garderFichier(chapitre, f);
+    const titre = COURS.find((c) => c.id === chapitre).titre;
+    if (trouve) dire('Chapitre reconnu : ' + titre + '. Ton cours est rangé dans ce chapitre. Clique sur une bulle pour l\'explication ou les exercices.');
+    else if (f.type.startsWith('image/')) dire('Le site ne peut pas lire une photo. Ton cours est rangé dans « ' + titre + ' » : si ce n\'est pas le bon chapitre, retire-le, choisis le bon chapitre et dépose-le à nouveau.');
+    else dire('Chapitre non reconnu dans ce fichier. Ton cours est rangé dans « ' + titre + ' » : si ce n\'est pas le bon chapitre, retire-le, choisis le bon chapitre et dépose-le à nouveau.');
+    genre = 'simple';
+    afficher();
+  });
+
   const NIVEAUX = ['pour démarrer', 'niveau contrôle', 'pour aller plus loin'];
   function exercices(niveau) {
     const modeles = EXERCICES[chapitre];
@@ -226,6 +315,7 @@ window.MathJax = {
   function afficher(niveau) {
     const c = COURS.find((x) => x.id === chapitre);
     zone.querySelectorAll('.chap').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === chapitre)));
+    majFichier();
     panneau.className = 'panneau ' + genre;
     $('outils-exo').hidden = genre !== 'exo';
     $('titre-panneau').textContent = (genre === 'cours' ? 'Le cours' : genre === 'simple' ? 'En mots simples' : 'Exercices') + ' · ' + c.titre;
