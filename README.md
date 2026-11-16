@@ -7,7 +7,8 @@ Une application web installable sur téléphone (PWA) pour réviser la **spécia
 - **Des exercices** : trois exercices avec indice et correction détaillée. Les nombres changent à chaque clic et la correction est calculée automatiquement.
 - **Dépôt de son cours** : l'élève peut déposer une ou plusieurs feuilles (PDF, photos ou texte) pour chaque matière. Les feuilles restent sur son appareil (`IndexedDB`) et le site reconnaît automatiquement le chapitre quand le fichier contient du texte.
 - **Mode IA (facultatif, payant)** : avec une clé API Anthropic enregistrée durablement sur l'appareil (`localStorage` + `IndexedDB`), Claude lit toutes les feuilles déposées pour remettre le cours au propre, l'expliquer sur mesure ou générer 3 exercices corrigés adaptés.
-- **Installation téléphone (PWA) & transfert de clé** : installable sur Android et iPhone comme une vraie application hors-ligne, avec bouton de transfert par lien (`#cle=...`), export/import JSON des réglages et bouton de mise à jour forcée.
+- **Historique permanent & Export PDF** : chaque cours, explication ou série d'exercices générés par l'IA reste conservé dans l'historique sur l'appareil (`IndexedDB` + `localStorage`) et tout contenu (avec ses indices et corrections) peut être téléchargé en PDF en un clic.
+- **Installation téléphone (PWA) & transfert de clé** : installable sur Android et iPhone comme une vraie application hors-ligne, avec bouton de transfert par lien (`#cle=...`), export/import JSON des réglages (clé + historique) et bouton de mise à jour forcée.
 
 ## Programmes couverts
 

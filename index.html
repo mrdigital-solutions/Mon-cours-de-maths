@@ -150,6 +150,44 @@ details { border: 1px solid var(--line); border-radius: 10px; margin: 10px 0; ba
 summary { cursor: pointer; padding: 9px 14px; font-weight: 700; border-radius: 10px; }
 details > .rendu { padding: 0 14px 10px; }
 footer { color: var(--muted); font-size: 0.88rem; }
+
+.historique { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.historique h2 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 1.1rem; }
+.hist-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.hist-item {
+  display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; justify-content: space-between;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+}
+.hist-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px; }
+.hist-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.84rem; color: var(--muted); }
+.badge { font-size: 0.78rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; color: var(--on-accent); }
+.badge.cours { background: var(--lesson); }
+.badge.simple { background: var(--explain); }
+.badge.exo { background: var(--practice); }
+.hist-sujet { font-weight: 700; overflow-wrap: anywhere; }
+.hist-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.discret.petit { font-size: 0.85rem; padding: 4px 10px; }
+.discret.pdf-btn { font-weight: 700; }
+.pdf-feuille {
+  position: fixed; left: -99999px; top: 0; width: 740px; padding: 28px 34px;
+  background: #ffffff; color: #1a2340; font-family: var(--body); font-size: 16px; line-height: 1.6;
+}
+.pdf-feuille h1 { font-family: var(--display); font-weight: 800; font-size: 24px; margin: 0 0 4px; color: #1a2340; }
+.pdf-feuille .pdf-meta { font-size: 13px; color: #586384; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 2px solid #cfd7e8; }
+.pdf-feuille h3 { font-family: var(--display); font-weight: 800; font-size: 18px; margin: 18px 0 6px; color: #2748c8; }
+.pdf-feuille.cours h3 { color: #7436b0; }
+.pdf-feuille.exo h3 { color: #0b7350; }
+.pdf-feuille details { border: 1px solid #cfd7e8; background: #f8fafe; border-radius: 8px; margin: 8px 0; }
+.pdf-feuille summary { display: block; list-style: none; padding: 7px 12px; font-weight: 700; color: #1a2340; }
+.pdf-feuille summary::-webkit-details-marker { display: none; }
+.pdf-feuille .rendu p { max-width: none; }
+@media print {
+  body { background: #ffffff; background-image: none; color: #000000; padding: 0; }
+  header, .feuille, .bulles, footer, .tete button, .tete .ligne { display: none !important; }
+  .panneau { border: 0; }
+  .panneau .tete { background: #ffffff !important; border-bottom: 2px solid #000000; }
+  details { break-inside: avoid; }
+}
 </style>
 </head>
 <body>
@@ -228,6 +266,12 @@ footer { color: var(--muted); font-size: 0.88rem; }
         </div>
       </details>
     </div>
+
+    <div class="historique" id="historique-zone" hidden>
+      <h2>Historique de mes cours et exercices générés</h2>
+      <p class="aide" style="margin:0">Tout ce que l'IA génère reste enregistré ici sur ton appareil, même si tu changes de feuilles ou fermes l'application.</p>
+      <ul id="historique-liste" class="hist-liste"></ul>
+    </div>
   </section>
 
   <div class="bulles">
@@ -248,12 +292,15 @@ footer { color: var(--muted); font-size: 0.88rem; }
   <section class="panneau cours" id="panneau">
     <div class="tete">
       <h2 id="titre-panneau"></h2>
-      <div class="ligne" id="outils-exo" hidden>
-        <button type="button" class="discret" data-niveau="0">Plus faciles</button>
-        <button type="button" class="discret" data-niveau="mix">D'autres exercices</button>
-        <button type="button" class="discret" data-niveau="2">Plus difficiles</button>
+      <div class="ligne">
+        <div class="ligne" id="outils-exo" hidden>
+          <button type="button" class="discret" data-niveau="0">Plus faciles</button>
+          <button type="button" class="discret" data-niveau="mix">D'autres exercices</button>
+          <button type="button" class="discret" data-niveau="2">Plus difficiles</button>
+        </div>
+        <button type="button" class="discret pdf-btn" id="btn-pdf" hidden>Télécharger en PDF</button>
+        <button type="button" class="discret" id="stop-ia" hidden>Arrêter</button>
       </div>
-      <button type="button" class="discret" id="stop-ia" hidden>Arrêter</button>
     </div>
     <div class="corps"><div id="sortie"></div></div>
   </section>
@@ -394,10 +441,11 @@ window.MathJax = {
     };
   });
 
-  /* ---------- Stockage IndexedDB (feuilles par matière, cache IA, réglages persistants) ---------- */
+  /* ---------- Stockage IndexedDB (feuilles par matière, cache IA, historique permanent, réglages) ---------- */
   const cleFeuilles = (m = matiere) => (m === 'pc' ? 'mon-cours-pc' : 'mon-cours');
   const cleCache = (m = matiere) => (m === 'pc' ? 'ia-cache-pc' : 'ia-cache');
   const CLE_PARAMS = 'parametres-ia';
+  const CLE_HIST = 'ia-historique';
   const memoire = {};
   const base = () => new Promise((ok, ko) => {
     const r = indexedDB.open('mon-cours-de-maths', 1);
@@ -424,6 +472,59 @@ window.MathJax = {
   const lireCache = async (m = matiere) => lireBrut(cleCache(m));
   const garderCache = async (c, m = matiere) => ecrireBrut(cleCache(m), c);
   const empreinteFeuilles = (feuilles) => feuilles.map((f) => f.name + ':' + f.size + ':' + f.lastModified).join('|');
+
+  async function lireHistorique() {
+    let v = await lireBrut(CLE_HIST);
+    if (!Array.isArray(v)) {
+      try { const raw = localStorage.getItem('maths-ia-historique'); if (raw) v = JSON.parse(raw); } catch (e) {}
+    }
+    return Array.isArray(v) ? v : [];
+  }
+  async function sauverHistorique(liste) {
+    await ecrireBrut(CLE_HIST, liste);
+    try { localStorage.setItem('maths-ia-historique', JSON.stringify(liste)); } catch (e) {}
+  }
+  async function ajouterHistorique(entree) {
+    const liste = await lireHistorique();
+    if (liste.some((x) => x.texte === entree.texte && x.type === entree.type && x.matiere === entree.matiere)) return liste;
+    const maj = [entree, ...liste];
+    await sauverHistorique(maj);
+    return maj;
+  }
+  async function migrerCacheVersHistorique() {
+    const hist = await lireHistorique();
+    let modifie = false;
+    for (const mat of ['maths', 'pc']) {
+      const cache = await lireCache(mat);
+      if (!cache || !cache.reponses) continue;
+      const feuilles = await lireFeuilles(mat);
+      const noms = feuilles.map((f) => f.name);
+      for (const type of ['cours', 'simple', 'exo']) {
+        const rep = cache.reponses[type];
+        if (!rep || !rep.texte) continue;
+        const deja = hist.some((h) => h.texte === rep.texte && h.type === type && h.matiere === mat);
+        if (!deja) {
+          hist.push({
+            id: 'h-' + Date.now() + '-' + mat + '-' + type + '-' + Math.random().toString(36).slice(2, 6),
+            date: new Date().toISOString(),
+            matiere: mat,
+            type,
+            sujet: cache.sujet || (mat === 'pc' ? 'Mon cours (Physique-Chimie)' : 'Mon cours (Maths)'),
+            feuillesNoms: noms,
+            texte: rep.texte,
+            cout: rep.cout ?? null,
+            coupe: Boolean(rep.coupe)
+          });
+          modifie = true;
+        }
+      }
+    }
+    if (modifie) {
+      hist.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      await sauverHistorique(hist);
+    }
+    return hist;
+  }
 
   async function migrerFeuilles() {
     try {
@@ -664,21 +765,22 @@ window.MathJax = {
       });
     } catch (e) {}
   };
-  $('export-json').onclick = () => {
+  $('export-json').onclick = async () => {
     const data = {
-      version: 1,
+      version: 2,
       app: 'cours-1re',
       exportedAt: new Date().toISOString(),
       cle: cle(),
       modele: modele(),
-      depense: Number(lire('maths-depense', '0')) || 0
+      depense: Number(lire('maths-depense', '0')) || 0,
+      historique: await lireHistorique()
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = 'cours-1re-reglages.json'; a.click();
     URL.revokeObjectURL(url);
-    direReglages('Réglages exportés.');
+    direReglages('Réglages et historique exportés.');
   };
   $('import-json').onclick = () => $('import-fichier').click();
   $('import-fichier').onchange = async (e) => {
@@ -689,9 +791,20 @@ window.MathJax = {
       if (typeof data.cle === 'string' && data.cle.trim()) ecrire('maths-cle', data.cle.trim());
       if (data.modele && TARIFS[data.modele]) ecrire('maths-modele', data.modele);
       if (typeof data.depense === 'number') ecrire('maths-depense', String(data.depense));
+      if (Array.isArray(data.historique)) {
+        const exist = await lireHistorique();
+        for (const item of data.historique) {
+          if (item && item.texte && !exist.some((x) => x.id === item.id || (x.texte === item.texte && x.type === item.type && x.matiere === item.matiere))) {
+            exist.push({ ...item, matiere: item.matiere === 'pc' ? 'pc' : 'maths' });
+          }
+        }
+        exist.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        await sauverHistorique(exist);
+        await majHistorique();
+      }
       await sauverParamsIA();
       majIA(); majFichier();
-      direReglages('Réglages et clé importés avec succès.');
+      direReglages('Réglages, clé et historique importés avec succès.');
       if (chapitre === 'mon-cours') afficher();
     } catch (err) {
       direReglages('Erreur : fichier JSON invalide.');
@@ -795,6 +908,194 @@ window.MathJax = {
 
   const TITRES_GENRE = { cours: 'Le cours', simple: 'En mots simples', exo: 'Exercices' };
   const TITRES_IA = { cours: 'Mon cours au propre', simple: 'Ton cours expliqué', exo: 'Exercices sur ton cours' };
+  const LIBELLES_TYPE = { cours: 'Cours au propre', simple: 'Explication', exo: 'Exercices' };
+  const formatDate = (iso) => {
+    try { return new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+    catch (e) { return ''; }
+  };
+
+  /* ---------- Export PDF (avec formules MathJax & corrections ouvertes) ---------- */
+  let documentActuel = null, pdfLibsPret = null;
+  function chargerPdfLibs() {
+    if (!pdfLibsPret) {
+      pdfLibsPret = charger('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
+        .then(() => charger('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'))
+        .then(() => {
+          if (!window.html2canvas || !window.jspdf || !window.jspdf.jsPDF) throw new Error('pdf-libs');
+        });
+      pdfLibsPret.catch(() => { pdfLibsPret = null; });
+    }
+    return pdfLibsPret;
+  }
+  async function telechargerPDF(doc, boutonSource) {
+    if (!doc) return;
+    const ancienTxt = boutonSource ? boutonSource.textContent : '';
+    if (boutonSource) { boutonSource.textContent = 'Création…'; boutonSource.disabled = true; }
+    let conteneur = null;
+    try {
+      await chargerPdfLibs();
+      conteneur = document.createElement('div');
+      conteneur.className = 'pdf-feuille ' + (doc.type || 'simple');
+      const h1 = document.createElement('h1'); h1.textContent = doc.titre || 'Mon cours';
+      const meta = document.createElement('p'); meta.className = 'pdf-meta';
+      meta.textContent = (doc.matiere === 'pc' ? 'Physique-Chimie' : 'Mathématiques') + ' · Première générale' + (doc.date ? ' · ' + formatDate(doc.date) : '');
+      conteneur.append(h1, meta);
+
+      if (doc.texte) {
+        const zonePdf = document.createElement('div');
+        if (doc.type === 'exo') {
+          const exos = decouper(doc.texte);
+          if (exos.length) exos.forEach((e, i) => zonePdf.append(carte(i + 1, e, '')));
+          else zonePdf.append(bloc(doc.texte));
+        } else {
+          zonePdf.append(bloc(doc.texte));
+        }
+        conteneur.append(zonePdf);
+      } else if (doc.clonerDepuisSortie) {
+        const clone = sortie.cloneNode(true);
+        clone.querySelectorAll('.aide, .plein').forEach((n) => n.remove());
+        conteneur.append(clone);
+      }
+      conteneur.querySelectorAll('details').forEach((d) => { d.open = true; });
+      document.body.append(conteneur);
+
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      if (window.MathJax && window.MathJax.startup && window.MathJax.startup.promise) {
+        await window.MathJax.startup.promise.catch(() => {});
+      }
+      if ((doc.texte || !conteneur.querySelector('mjx-container')) && window.MathJax && window.MathJax.typesetPromise) {
+        await window.MathJax.typesetPromise([conteneur]).catch(() => {});
+      }
+
+      /* Rend chaque SVG MathJax autonome pour html2canvas (dimensions en px + symboles du cache global). */
+      const globalDefs = document.getElementById('MJX-SVG-global-cache');
+      conteneur.querySelectorAll('mjx-container').forEach((m) => { m.style.overflow = 'visible'; });
+      conteneur.querySelectorAll('mjx-container svg').forEach((svg) => {
+        const rect = svg.getBoundingClientRect();
+        if (rect.width && rect.height) {
+          svg.setAttribute('width', Math.ceil(rect.width) + 'px');
+          svg.setAttribute('height', Math.ceil(rect.height) + 'px');
+        }
+        svg.style.color = '#1a2340';
+        if (globalDefs) {
+          const refs = new Set([...svg.querySelectorAll('use')].map((u) => (u.getAttribute('href') || u.getAttribute('xlink:href') || '').replace(/^#/, '')).filter(Boolean));
+          if (refs.size) {
+            let defs = svg.querySelector('defs');
+            if (!defs) { defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs'); svg.prepend(defs); }
+            refs.forEach((id) => {
+              const orig = globalDefs.querySelector('[id="' + id + '"]');
+              if (orig && !defs.querySelector('[id="' + id + '"]')) defs.append(orig.cloneNode(true));
+            });
+          }
+        }
+      });
+
+      /* Découpe proprement les blocs pour éviter de couper une ligne ou formule entre deux pages A4. */
+      const pageH = Math.floor(740 * (273 / 186));
+      const baseTop = conteneur.getBoundingClientRect().top;
+      conteneur.querySelectorAll('.rendu h3, .rendu p, .rendu li, .exercice h3, details').forEach((el) => {
+        const r = el.getBoundingClientRect();
+        const top = r.top - baseTop, bottom = r.bottom - baseTop, h = bottom - top;
+        if (el.tagName === 'DETAILS' && h > pageH * 0.72) return;
+        const limite = Math.floor(top / pageH + 1) * pageH;
+        if (top < limite && bottom > limite && h < pageH * 0.85) {
+          el.style.marginTop = (limite - top + 14) + 'px';
+        }
+      });
+
+      const canvas = await window.html2canvas(conteneur, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+      const pdf = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageCanvasW = canvas.width;
+      const pageCanvasH = Math.floor(pageCanvasW * (273 / 186));
+      for (let y = 0, p = 0; y < canvas.height; y += pageCanvasH, p++) {
+        const sliceH = Math.min(pageCanvasH, canvas.height - y);
+        const slice = document.createElement('canvas');
+        slice.width = pageCanvasW; slice.height = sliceH;
+        slice.getContext('2d').drawImage(canvas, 0, y, pageCanvasW, sliceH, 0, 0, pageCanvasW, sliceH);
+        if (p > 0) pdf.addPage();
+        pdf.addImage(slice.toDataURL('image/jpeg', 0.94), 'JPEG', 12, 12, 186, (sliceH / pageCanvasW) * 186, undefined, 'FAST');
+      }
+      const nom = (doc.titre || 'mon-cours').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) + '.pdf';
+      pdf.save(nom);
+    } catch (e) {
+      const ouverts = [];
+      sortie.querySelectorAll('details').forEach((d) => { if (!d.open) { d.open = true; ouverts.push(d); } });
+      window.print();
+      ouverts.forEach((d) => { d.open = false; });
+    } finally {
+      if (conteneur) conteneur.remove();
+      if (boutonSource) { boutonSource.textContent = ancienTxt; boutonSource.disabled = false; }
+    }
+  }
+  $('btn-pdf').onclick = () => telechargerPDF(documentActuel, $('btn-pdf'));
+
+  /* ---------- Historique permanent des générations IA ---------- */
+  async function majHistorique() {
+    const liste = await lireHistorique();
+    $('historique-zone').hidden = !liste.length;
+    const ul = $('historique-liste');
+    ul.textContent = '';
+    liste.forEach((item) => {
+      const li = document.createElement('li'); li.className = 'hist-item';
+      const info = document.createElement('div'); info.className = 'hist-info';
+      const meta = document.createElement('div'); meta.className = 'hist-meta';
+      const badge = document.createElement('span');
+      badge.className = 'badge ' + (item.type || 'simple');
+      badge.textContent = LIBELLES_TYPE[item.type] || 'Cours';
+      const matSpan = document.createElement('span');
+      matSpan.textContent = (item.matiere === 'pc' ? 'Physique-Chimie' : 'Maths') + (item.date ? ' · ' + formatDate(item.date) : '');
+      meta.append(badge, matSpan);
+      const sujet = document.createElement('div'); sujet.className = 'hist-sujet';
+      sujet.textContent = item.sujet || 'Mon cours';
+      info.append(meta, sujet);
+      if (item.feuillesNoms && item.feuillesNoms.length) {
+        const fn = document.createElement('div'); fn.className = 'hist-meta';
+        fn.textContent = item.feuillesNoms.join(', ');
+        info.append(fn);
+      }
+      const btns = document.createElement('div'); btns.className = 'hist-btns';
+      const bOuvrir = document.createElement('button');
+      bOuvrir.type = 'button'; bOuvrir.className = 'discret petit'; bOuvrir.textContent = 'Ouvrir';
+      bOuvrir.onclick = () => { ouvrirEntreeHistorique(item); panneau.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+
+      const bPdf = document.createElement('button');
+      bPdf.type = 'button'; bPdf.className = 'discret petit pdf-btn'; bPdf.textContent = 'PDF';
+      bPdf.onclick = () => telechargerPDF({
+        titre: (TITRES_IA[item.type] || 'Mon cours') + ' · ' + (item.sujet || 'Mon cours'),
+        type: item.type, texte: item.texte, matiere: item.matiere, date: item.date
+      }, bPdf);
+
+      const bSup = document.createElement('button');
+      bSup.type = 'button'; bSup.className = 'discret petit'; bSup.textContent = 'Supprimer';
+      bSup.setAttribute('aria-label', 'Supprimer ' + (item.sujet || 'cette entrée'));
+      bSup.onclick = async () => {
+        if (!window.confirm('Supprimer « ' + (item.sujet || 'cette fiche') + ' » de l\'historique ?')) return;
+        const reste = (await lireHistorique()).filter((x) => x.id !== item.id);
+        await sauverHistorique(reste);
+        majHistorique();
+      };
+      btns.append(bOuvrir, bPdf, bSup);
+      li.append(info, btns);
+      ul.append(li);
+    });
+  }
+
+  async function ouvrirEntreeHistorique(item) {
+    arreterIA();
+    const cibleMat = item.matiere === 'pc' ? 'pc' : 'maths';
+    if (cibleMat !== matiere) {
+      matiere = cibleMat;
+      ecrire('maths-matiere', matiere);
+      majBoutonsMatieres();
+      construireChapitres();
+    }
+    chapitre = 'mon-cours'; ecrire(cleChapitre(matiere), 'mon-cours');
+    genre = item.type || 'simple';
+    zone.querySelectorAll('.chap').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === 'mon-cours')));
+    majFichier();
+    const feuilles = await lireFeuilles(matiere);
+    afficherReponseIA(genre, item.texte, item.sujet, item.cout, item.coupe, item.date, Boolean(feuilles.length && cle()), matiere);
+  }
 
   let flux = null, jetonIA = 0;
   function arreterIA() {
@@ -804,14 +1105,33 @@ window.MathJax = {
   }
   $('stop-ia').onclick = arreterIA;
 
-  function afficherReponseIA(type, corps, sujet, cout, coupe) {
+  function afficherReponseIA(type, corps, sujet, cout, coupe, date, peutRegenerer, matCible = matiere) {
+    const titre = TITRES_IA[type] + ' · ' + (sujet || 'Mon cours');
     panneau.className = 'panneau ' + type;
-    $('outils-exo').hidden = !(type === 'exo' && cle());
-    $('titre-panneau').textContent = TITRES_IA[type] + ' · ' + (sujet || 'Mon cours');
+    $('outils-exo').hidden = !(type === 'exo' && peutRegenerer);
+    $('titre-panneau').textContent = titre;
+    documentActuel = { titre, type, texte: corps, matiere: matCible, date };
+    $('btn-pdf').hidden = false;
+
     sortie.textContent = '';
     const etat = document.createElement('p'); etat.className = 'aide';
-    etat.textContent = (cout != null ? 'Coût estimé de cette demande : ' + dollars(cout) + '.' : '') +
-      (coupe ? ' La réponse a été coupée car elle était trop longue.' : '');
+    const parts = [];
+    if (date) parts.push('Enregistré le ' + formatDate(date) + '.');
+    if (cout != null) parts.push('Coût estimé : ' + dollars(cout) + '.');
+    if (coupe) parts.push('La réponse a été coupée car elle était trop longue.');
+    etat.textContent = parts.join(' ');
+    sortie.append(etat);
+
+    if (peutRegenerer && type !== 'exo') {
+      const ligneBtn = document.createElement('p');
+      const bRegen = document.createElement('button');
+      bRegen.type = 'button'; bRegen.className = 'discret petit';
+      bRegen.textContent = 'Générer une nouvelle version (IA)';
+      bRegen.onclick = () => lancerIA(type);
+      ligneBtn.append(bRegen);
+      sortie.append(ligneBtn);
+    }
+
     const zoneTexte = document.createElement('div');
     if (type === 'exo') {
       const exos = decouper(corps);
@@ -820,7 +1140,7 @@ window.MathJax = {
     } else {
       zoneTexte.append(bloc(corps));
     }
-    sortie.append(etat, zoneTexte);
+    sortie.append(zoneTexte);
     typographier(sortie);
   }
 
@@ -841,7 +1161,8 @@ window.MathJax = {
     let sujetCourant = (cacheExist && cacheExist.empreinte === emp && cacheExist.sujet) || '';
 
     panneau.className = 'panneau ' + type;
-    $('outils-exo').hidden = true; $('stop-ia').hidden = false;
+    $('outils-exo').hidden = true; $('btn-pdf').hidden = true; $('stop-ia').hidden = false;
+    documentActuel = null;
     const majTitre = () => { $('titre-panneau').textContent = TITRES_IA[type] + ' · ' + (sujetCourant || 'Mon cours'); };
     majTitre();
     const etat = document.createElement('p'); etat.className = 'aide'; etat.textContent = 'Claude lit ton cours…';
@@ -908,14 +1229,32 @@ window.MathJax = {
       if (type === 'exo') $('outils-exo').hidden = !cle();
       const u = message.usage || {}, cout = ((u.input_tokens || 0) * TARIFS[m][0] + (u.output_tokens || 0) * TARIFS[m][1]) / 1e6;
       const coupe = message.stop_reason === 'max_tokens';
+      const maintenant = new Date().toISOString();
       ecrire('maths-depense', String(Number(lire('maths-depense', '0')) + cout));
-      etat.textContent = 'Coût estimé de cette demande : ' + dollars(cout) + '.' + (coupe ? ' La réponse a été coupée car elle était trop longue.' : '');
+      etat.textContent = 'Enregistré dans ton historique · Coût estimé : ' + dollars(cout) + '.' + (coupe ? ' La réponse a été coupée car elle était trop longue.' : '');
       await sauverParamsIA();
       majIA();
+
       const nouveauCache = (cacheExist && cacheExist.empreinte === emp) ? { ...cacheExist, reponses: { ...(cacheExist.reponses || {}) } } : { empreinte: emp, reponses: {} };
       if (sujetCourant) nouveauCache.sujet = sujetCourant;
       nouveauCache.reponses[type] = { texte: corpsFinal, cout, coupe };
       await garderCache(nouveauCache, mat);
+
+      await ajouterHistorique({
+        id: 'h-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        date: maintenant,
+        matiere: mat,
+        type,
+        sujet: sujetCourant || (mat === 'pc' ? 'Mon cours (Physique-Chimie)' : 'Mon cours (Maths)'),
+        feuillesNoms: feuilles.map((f) => f.name),
+        texte: corpsFinal,
+        cout,
+        coupe
+      });
+      await majHistorique();
+
+      documentActuel = { titre: $('titre-panneau').textContent, type, texte: corpsFinal, matiere: mat, date: maintenant };
+      $('btn-pdf').hidden = false;
     } catch (e) {
       if (monJeton !== jetonIA) return;
       if (texte && type !== 'exo') montrer();
@@ -949,9 +1288,12 @@ window.MathJax = {
 
     if (chapitre !== 'mon-cours') {
       const c = coursActuels().find((x) => x.id === chapitre);
+      const titre = TITRES_GENRE[genre] + ' · ' + c.titre;
       panneau.className = 'panneau ' + genre;
       $('outils-exo').hidden = genre !== 'exo';
-      $('titre-panneau').textContent = TITRES_GENRE[genre] + ' · ' + c.titre;
+      $('titre-panneau').textContent = titre;
+      documentActuel = { titre, type: genre, matiere: mat, clonerDepuisSortie: true };
+      $('btn-pdf').hidden = false;
       if (genre === 'exo') { exercices(niveau || 'mix'); return; }
       sortie.textContent = '';
       sortie.append(bloc(genre === 'cours' ? c.cours : c.simple));
@@ -962,39 +1304,54 @@ window.MathJax = {
     const monGenre = genre;
     const feuilles = await lireFeuilles(mat);
     const cache = await lireCache(mat);
+    const hist = await lireHistorique();
     if (monAff !== jetonAffichage || matiere !== mat || chapitre !== 'mon-cours' || genre !== monGenre) return;
 
     const emp = empreinteFeuilles(feuilles);
     const cacheValide = cache && cache.empreinte === emp ? cache : null;
     const rep = cacheValide && cacheValide.reponses && cacheValide.reponses[monGenre];
+    const histMatch = hist.find((h) => h.matiere === mat && h.type === monGenre);
     const nomMat = mat === 'pc' ? 'Physique-Chimie' : 'Maths';
+    const peutRegen = Boolean(feuilles.length && cle());
 
     panneau.className = 'panneau ' + monGenre;
 
+    if (niveau && peutRegen) {
+      lancerIA('exo', niveau);
+      return;
+    }
+
+    if (rep) {
+      afficherReponseIA(monGenre, rep.texte, cacheValide.sujet, rep.cout, rep.coupe, histMatch && histMatch.texte === rep.texte ? histMatch.date : null, peutRegen, mat);
+      return;
+    }
+
+    if (histMatch && (!depuisBulle || !peutRegen)) {
+      afficherReponseIA(monGenre, histMatch.texte, histMatch.sujet, histMatch.cout, histMatch.coupe, histMatch.date, peutRegen, mat);
+      return;
+    }
+
+    if (depuisBulle && peutRegen) {
+      lancerIA(monGenre);
+      return;
+    }
+
+    if (histMatch) {
+      afficherReponseIA(monGenre, histMatch.texte, histMatch.sujet, histMatch.cout, histMatch.coupe, histMatch.date, peutRegen, mat);
+      return;
+    }
+
+    documentActuel = null;
+    $('btn-pdf').hidden = true;
+    $('outils-exo').hidden = true;
+
     if (!feuilles.length) {
-      $('outils-exo').hidden = true;
       $('titre-panneau').textContent = TITRES_GENRE[monGenre] + ' · Mon cours (' + nomMat + ')';
       sortie.textContent = '';
       sortie.append(bloc('Aucune feuille n\'est encore déposée dans **Mon cours (' + nomMat + ')**.\n\nAjoute les photos, PDF ou fichiers texte de ton cours ci-dessus avec **« Ajouter des feuilles »**, ou choisis directement un chapitre du programme juste au-dessus.'));
       return;
     }
 
-    if (niveau && cle()) {
-      lancerIA('exo', niveau);
-      return;
-    }
-
-    if (rep) {
-      afficherReponseIA(monGenre, rep.texte, cacheValide.sujet, rep.cout, rep.coupe);
-      return;
-    }
-
-    if (depuisBulle && cle()) {
-      lancerIA(monGenre);
-      return;
-    }
-
-    $('outils-exo').hidden = true;
     $('titre-panneau').textContent = (cle() ? TITRES_IA[monGenre] : TITRES_GENRE[monGenre]) + ' · ' + ((cacheValide && cacheValide.sujet) || 'Mon cours (' + nomMat + ')');
     sortie.textContent = '';
     if (cle()) {
@@ -1032,6 +1389,8 @@ window.MathJax = {
       chapitre = 'mon-cours';
       ecrire('maths-chapitre', 'mon-cours');
     }
+    await migrerCacheVersHistorique();
+    await majHistorique();
     majBoutonsMatieres();
     construireChapitres();
     majIA();
